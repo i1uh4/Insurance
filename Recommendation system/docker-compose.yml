@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  recommendation_system:
+    build: .
+    container_name: insurance_recommendation_system
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./model:/app/model
+      - ./model_cache:/app/model_cache
+    environment:
+      - MODEL_PATH=sentence-transformers/all-MiniLM-L6-v2
+      - PRODUCTS_DATA_PATH=/app/model/products_data.json
+      - PYTHONHTTPSVERIFY=0
+      - HF_HUB_DISABLE_SYMLINKS_WARNING=1
+    restart: unless-stopped
