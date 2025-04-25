@@ -1,14 +1,14 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 
-from app.models.insurance_models import InsuranceRecommendationRequest, RecommendationWithInsurance
+from app.models.insurance_models import InsuranceRecommendation, InsuranceRecommendationRequest
 from app.services.recommendation_service import RecommendationService
 
 router = APIRouter()
 recommendation_service = RecommendationService()
 
 
-@router.post("/recommendations", response_model=List[RecommendationWithInsurance])
+@router.post("/recommendations", response_model=List[InsuranceRecommendation])
 async def get_recommendations(request: InsuranceRecommendationRequest):
     """
     Get insurance product recommendations based on user profile.

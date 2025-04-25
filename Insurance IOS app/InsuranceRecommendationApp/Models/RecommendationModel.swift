@@ -58,11 +58,14 @@ struct RecommendationRequest: Codable {
 }
 
 struct InsuranceProduct: Codable {
-    var productId: String
+    var productId: Int
     var productName: String
     var provider: String
     var category: String
     var description: String
+    var premium: Double
+    var coverage: Double
+    var duration: Int?
     var estimatedPrice: Double
     var matchScore: Double
     var features: [String]
@@ -74,8 +77,11 @@ struct InsuranceProduct: Codable {
         case productId = "product_id"
         case productName = "product_name"
         case provider
-        case category
+        case category = "category_name"
         case description
+        case premium
+        case coverage
+        case duration
         case estimatedPrice = "estimated_price"
         case matchScore = "match_score"
         case features

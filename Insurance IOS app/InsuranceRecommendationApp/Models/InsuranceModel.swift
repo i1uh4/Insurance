@@ -4,7 +4,7 @@ struct Insurance: Identifiable, Codable, Equatable {
     var id: Int
     var name: String
     var description: String
-    var price: Double
+    var premium: Double
     var company: String
     var category: String
     var coverageAmount: Double
@@ -15,7 +15,7 @@ struct Insurance: Identifiable, Codable, Equatable {
         case id
         case name
         case description
-        case price
+        case premium
         case company
         case category
         case coverageAmount = "coverage_amount"
@@ -35,9 +35,9 @@ struct InsuranceCategory: Identifiable {
 }
 
 let insuranceCategories = [
-    InsuranceCategory(name: "Health", icon: "heart.fill"),
-    InsuranceCategory(name: "Life", icon: "person.fill"),
-    InsuranceCategory(name: "Auto", icon: "car.fill"),
-    InsuranceCategory(name: "Home", icon: "house.fill"),
-    InsuranceCategory(name: "Travel", icon: "airplane")
+    InsuranceCategory(name: "Health Insurance", icon: "heart.fill"),
+    InsuranceCategory(name: "Life Insurance", icon: "person.fill"),
+    InsuranceCategory(name: "Auto Insurance", icon: "car.fill"),
+    InsuranceCategory(name: "Home Insurance", icon: "house.fill"),
+    InsuranceCategory(name: "Travel Insurance", icon: "airplane")
 ]

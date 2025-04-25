@@ -112,7 +112,6 @@ struct InsuranceDetailView: View {
                     }
                 }
                 
-                // Recommendation reason
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Why We Recommend This")
                         .font(.headline)
@@ -121,28 +120,11 @@ struct InsuranceDetailView: View {
                         .font(.body)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                
-                // Purchase button
-                Button(action: {
-                    isPurchaseFormPresented = true
-                }) {
-                    Text("Purchase Insurance")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
-                .padding(.top, 10)
             }
             .padding()
         }
         .navigationTitle("Insurance Details")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isPurchaseFormPresented) {
-            PurchaseFormView(insurance: insurance)
-        }
     }
     
     private func getCategoryIcon(for category: String) -> String {
@@ -151,86 +133,3 @@ struct InsuranceDetailView: View {
     }
 }
 
-
-struct PurchaseFormView: View {
-    var insurance: InsuranceProduct
-    @State private var name = ""
-    @State private var email = ""
-    @State private var phone = ""
-    @State private var agreedToTerms = false
-    @Environment(\.presentationMode) var presentationMode
-    @State private var showingAlert = false
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Insurance Details")) {
-                    HStack {
-                        Text("Product")
-                        Spacer()
-                        Text(insurance.productName)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Provider")
-                        Spacer()
-                        Text(insurance.provider)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Price")
-                        Spacer()
-                        Text("₽\(Int(insurance.estimatedPrice)) / year")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Section(header: Text("Personal Information")) {
-                    TextField("Full Name", text: $name)
-                    TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                    TextField("Phone", text: $phone)
-                        .keyboardType(.phonePad)
-                }
-                
-                Section {
-                    Toggle(isOn: $agreedToTerms) {
-                        Text("I agree to the terms and conditions")
-                    }
-                }
-                
-                Section {
-                    Button(action: {
-                        // Here you would typically process the purchase
-                        showingAlert = true
-                    }) {
-                        Text("Submit Application")
-                            .frame(maxWidth: .infinity)
-                            .multilineTextAlignment(.center)
-                    }
-                    .disabled(!isFormValid)
-                }
-            }
-            .navigationTitle("Purchase Insurance")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-            .alert(isPresented: $showingAlert) {
-                Alert(
-                    title: Text("Application Submitted"),
-                    message: Text("Thank you for your application! A representative will contact you shortly."),
-                    dismissButton: .default(Text("OK")) {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                )
-            }
-        }
-    }
-    
-    var isFormValid: Bool {
-        !name.isEmpty && !email.isEmpty && !phone.isEmpty && agreedToTerms
-    }
-}

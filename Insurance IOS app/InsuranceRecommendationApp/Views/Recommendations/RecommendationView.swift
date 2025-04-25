@@ -4,6 +4,7 @@ struct RecommendationView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject var viewModel = RecommendationViewModel()
     @State private var selectedCategory: String? = nil
+    @State private var showRefreshButton = true
     
     var filteredRecommendations: [InsuranceProduct] {
         if let category = selectedCategory {
@@ -25,13 +26,31 @@ struct RecommendationView: View {
                         RecommendationsContentView(
                             viewModel: viewModel,
                             selectedCategory: $selectedCategory,
-                            filteredRecommendations: filteredRecommendations
+                            filteredRecommendations: filteredRecommendations,
+                            authViewModel: authViewModel
                         )
                     }
                 }
                 .navigationTitle("Recommendations")
+                .toolbar {
+                    if showRefreshButton {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                refreshRecommendations()
+                            }) {
+                                Label("Refresh", systemImage: "arrow.clockwise")
+                            }
+                        }
+                    }
+                }
                 .onAppear {
-                    // onAppear logic here if needed
+                    if viewModel.recommendations.isEmpty {
+                        if let user = authViewModel.user {
+                            if user.isProfileComplete {
+                                viewModel.getRecommendations(for: user)
+                            }
+                        }
+                    }
                 }
                 
                 if viewModel.isLoading {
@@ -47,8 +66,13 @@ struct RecommendationView: View {
             }
         }
     }
+    
+    private func refreshRecommendations() {
+        if let user = authViewModel.user {
+            viewModel.getRecommendations(for: user)
+        }
+    }
 }
-
 
 struct EmptyRecommendationsView: View {
     @ObservedObject var viewModel: RecommendationViewModel
@@ -78,53 +102,98 @@ struct EmptyRecommendationsView: View {
     }
 }
 
-
 struct RecommendationsContentView: View {
     @ObservedObject var viewModel: RecommendationViewModel
     @Binding var selectedCategory: String?
     var filteredRecommendations: [InsuranceProduct]
+    var authViewModel: AuthViewModel
     
     var body: some View {
         VStack {
-            CategoryScrollView(selectedCategory: $selectedCategory)
-                .padding(.vertical, 10)
+            CategoryScrollView(
+                selectedCategory: $selectedCategory,
+                categories: getAvailableCategories()
+            )
+            .padding(.vertical, 10)
+            
+            if selectedCategory != nil {
+                Text("Category: \(selectedCategory ?? "")")
+                    .font(.headline)
+                    .padding(.bottom, 5)
+            }
             
             if filteredRecommendations.isEmpty {
                 NoRecommendationsForCategoryView(resetAction: { selectedCategory = nil })
             } else {
-                RecommendationsList(recommendations: filteredRecommendations)
+                VStack {
+                    HStack {
+                        Text("Found \(filteredRecommendations.count) recommendations")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            refreshRecommendations()
+                        }) {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                                .font(.subheadline)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    RecommendationsList(recommendations: filteredRecommendations)
+                }
             }
         }
     }
+    
+    private func getAvailableCategories() -> [InsuranceCategory] {
+        let uniqueCategories = Set(viewModel.recommendations.map { $0.category })
+        
+        return insuranceCategories.filter { uniqueCategories.contains($0.name) }
+    }
+    
+    private func refreshRecommendations() {
+        if let user = authViewModel.user {
+            viewModel.getRecommendations(for: user)
+        }
+    }
 }
-
 
 struct CategoryScrollView: View {
     @Binding var selectedCategory: String?
+    var categories: [InsuranceCategory]
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 15) {
-                CategoryButton(
-                    title: "All",
-                    isSelected: selectedCategory == nil,
-                    action: { selectedCategory = nil }
-                )
-                
-                ForEach(insuranceCategories) { category in
+        VStack {
+            Text("Insurance Categories")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
                     CategoryButton(
-                        title: category.name,
-                        icon: category.icon,
-                        isSelected: selectedCategory == category.name,
-                        action: { selectedCategory = category.name }
+                        title: "All",
+                        isSelected: selectedCategory == nil,
+                        action: { selectedCategory = nil }
                     )
+                    
+                    ForEach(categories) { category in
+                        CategoryButton(
+                            title: category.name,
+                            icon: category.icon,
+                            isSelected: selectedCategory == category.name,
+                            action: { selectedCategory = category.name }
+                        )
+                    }
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
         }
     }
 }
-
 
 struct RecommendationsList: View {
     var recommendations: [InsuranceProduct]
@@ -149,14 +218,26 @@ struct NoRecommendationsForCategoryView: View {
     
     var body: some View {
         VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+                .padding(.bottom, 10)
+            
             Text("No recommendations found for this category")
                 .font(.headline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
                 .padding()
             
-            Button("Show All", action: resetAction)
-                .font(.headline)
-                .foregroundColor(.blue)
+            Button(action: resetAction) {
+                Text("Show All Recommendations")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 20)
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
         }
         .padding()
     }
@@ -190,5 +271,5 @@ struct CategoryButton: View {
 }
 
 extension InsuranceProduct: Identifiable {
-    var id: String { productId }
+    var id: Int { productId }
 }
