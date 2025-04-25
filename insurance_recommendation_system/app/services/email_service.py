@@ -8,19 +8,15 @@ from app.services.auth_service import create_verification_token
 
 async def send_verification_email(recipient_email: str, user_id: int):
     """Send verification email to user using aiosmtplib"""
-    # Create verification token
     token = create_verification_token(user_id)
 
-    # Create verification link
     verification_link = f"{BACKEND_URL}/auth/verify/{token}"
 
-    # Create email message
     message = MIMEMultipart("alternative")
     message["Subject"] = "Verify Your Email - Insurance Recommendation System"
     message["From"] = EMAIL_USERNAME
     message["To"] = recipient_email
 
-    # Create plain text content
     text = f"""
     Welcome to Insurance Recommendation System!
 
@@ -34,7 +30,6 @@ async def send_verification_email(recipient_email: str, user_id: int):
     Insurance Recommendation System Team
     """
 
-    # Create HTML content
     html = f"""
     <html>
     <head>
@@ -59,11 +54,9 @@ async def send_verification_email(recipient_email: str, user_id: int):
     </html>
     """
 
-    # Attach content
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
 
-    # Send email
     try:
         logging.info(f"Attempting to send email to {recipient_email}")
         async with SMTP(
@@ -78,5 +71,4 @@ async def send_verification_email(recipient_email: str, user_id: int):
         return True
     except Exception as e:
         logging.error(f"Error sending email: {str(e)}")
-        # Продолжаем выполнение даже при ошибке отправки письма
         return False
