@@ -51,19 +51,26 @@ services:
       - PYTHONPATH=/app
 
   recommendation_system:
-    build: ./recommendation_system
-    container_name: recommendation-system
+    build:
+      context: ./recommendation_system
+    volumes:
+      - ./recommendation_system:/app
     ports:
       - "8001:8001"
-    volumes:
-      - ./recommendation_system/model:/app/model
-      - ./recommendation_system/model_cache:/app/model_cache
     environment:
       - MODEL_PATH=sentence-transformers/all-MiniLM-L6-v2
       - PRODUCTS_DATA_PATH=/app/model/products_data.json
       - PYTHONHTTPSVERIFY=0
       - HF_HUB_DISABLE_SYMLINKS_WARNING=1
-    restart: unless-stopped
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/insurance
+      - PYTHONPATH=/app
+    command: >
+      sh -c "python init_alembic.py &&
+             python apply_migrations.py && 
+             python watch_changes.py &
+             uvicorn main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app"
+    depends_on:
+      - db
 
 volumes:
   postgres_data:

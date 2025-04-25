@@ -12,6 +12,14 @@ RUN mkdir -p /app/model_cache && chmod 777 /app/model_cache
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY . .
+
+RUN mkdir -p migrations
+
+RUN python init_alembic.py
+
+CMD ["python", "apply_migrations.py"]
+
 RUN mkdir -p /app/model
 
 COPY model/products_data.json /app/model/

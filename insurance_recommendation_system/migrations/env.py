@@ -7,7 +7,7 @@ from alembic import context
 import os
 import sys
 
-# Add the parent directory to sys.path
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import models
@@ -16,31 +16,18 @@ from app.models.insurance_models import Base as InsuranceBase
 from app.models.recommendation_models import Base as RecommendationBase
 from app.config import DATABASE_URL
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
 target_metadata = [UserBase.metadata, InsuranceBase.metadata, RecommendationBase.metadata]
 
-# Combine all metadata objects into one
 combined_metadata = UserBase.metadata
 for metadata in [InsuranceBase.metadata, RecommendationBase.metadata]:
     for table in metadata.tables.values():
         if table.name not in combined_metadata.tables:
             combined_metadata._add_table(table.name, table.schema, table)
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
-# Override sqlalchemy.url with DATABASE_URL from environment
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 

@@ -14,38 +14,30 @@ warnings.filterwarnings("ignore")
 
 class InsuranceRecommenderModel:
     def __init__(self, model_path: str, products_data_path: str):
-        # Загрузка данных о страховых продуктах
         try:
             with open(products_data_path, 'r', encoding='utf-8') as file:
                 self.products = json.load(file)
         except Exception as e:
             print(f"Ошибка при загрузке данных о продуктах: {e}")
-            # Аварийное создание пустого списка продуктов
             self.products = []
 
-        # Попытка загрузки модели
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.use_fallback = False
 
         try:
             print(f"Пытаемся загрузить модель из {model_path}...")
 
-            # Создаем папку для локального кэширования моделей
             cache_dir = Path("/app/model_cache")
             cache_dir.mkdir(exist_ok=True)
 
-            # Настраиваем окружение для обхода проблем с SSL
             os.environ['CURL_CA_BUNDLE'] = ''
             os.environ['REQUESTS_CA_BUNDLE'] = ''
             os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
-            os.environ['TRANSFORMERS_OFFLINE'] = '0'  # Разрешаем онлайн-загрузку
+            os.environ['TRANSFORMERS_OFFLINE'] = '0'
 
-            # Настраиваем HTTP-клиенты для игнорирования проверки SSL
-            # Это не рекомендуется в продакшене, но поможет обойти проблему
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-            # Настройка SSL для urllib3
             ssl_context = ssl._create_unverified_context()
             ssl._create_default_https_context = lambda: ssl_context
 
