@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 import httpx
+from dotenv import load_dotenv
 
 from app.models.recommendation_models import RecommendationWithInsurance, InsuranceRecommendationRequest
 
@@ -12,7 +13,7 @@ router = APIRouter(
 @router.post("/get_recommendations", response_model=List[RecommendationWithInsurance])
 async def get_recommendations(request: InsuranceRecommendationRequest):
     """Get recommendations for a user"""
-    recommendation_system_url = "http://recommendation_system:8001/api/recommendations"
+    recommendation_system_url = load_dotenv('RECOMMENDATION_API_URL')
 
     async with httpx.AsyncClient() as client:
         try:

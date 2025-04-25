@@ -12,7 +12,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -20,10 +19,7 @@ def get_db():
     finally:
         db.close()
 
-
-# Function to execute raw SQL from files
 def execute_sql_file(file_path, params=None):
-    # Get the absolute path to the SQL file
     base_path = pathlib.Path(__file__).parent.absolute()
     full_path = base_path / "sql" / file_path
 
