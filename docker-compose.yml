@@ -39,7 +39,7 @@ services:
   migration:
     build: ./insurance_recommendation_system
     container_name: db-migration-service
-    command: tail -f /dev/null  # Keep container running
+    command: tail -f /dev/null
     volumes:
       - ./insurance_recommendation_system:/app
       - ./migrations:/app/migrations

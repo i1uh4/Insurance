@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Running database migrations..."
+echo "Running service migrations..."
 cd /app
 alembic revision --autogenerate -m "$1"
 alembic upgrade head
