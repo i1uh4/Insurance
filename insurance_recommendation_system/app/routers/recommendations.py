@@ -1,23 +1,34 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 import httpx
+import os
 from dotenv import load_dotenv
 
 from app.models.recommendation_models import RecommendationWithInsurance, InsuranceRecommendationRequest
+
+load_dotenv()
 
 router = APIRouter(
     prefix="/recommendation",
     tags=["Recommendations"]
 )
 
+
 @router.post("/get_recommendations", response_model=List[RecommendationWithInsurance])
 async def get_recommendations(request: InsuranceRecommendationRequest):
     """Get recommendations for a user"""
-    recommendation_system_url = load_dotenv('RECOMMENDATION_API_URL')
+    recommendation_system_url = os.getenv('RECOMMENDATION_API_URL')
+
+    if not recommendation_system_url:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="RECOMMENDATION_API_URL environment variable is not set"
+        )
 
     async with httpx.AsyncClient() as client:
         try:
             print("Request payload:", request.dict())
+            print(f"Sending request to: {recommendation_system_url}")
 
             response = await client.post(recommendation_system_url, json=request.dict())
             response.raise_for_status()

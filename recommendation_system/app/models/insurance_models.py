@@ -1,5 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class InsuranceRecommendationRequest(BaseModel):
@@ -15,31 +16,43 @@ class InsuranceRecommendationRequest(BaseModel):
     travel_frequency: str
 
 
-class InsuranceProduct(BaseModel):
-    id: str
+class InsuranceCategory(BaseModel):
+    id: int
     name: str
-    provider: str
-    category: str
-    description: str
-    min_price: float
-    max_price: float
-    features: List[str]
-    suitable_for: List[str]
-    risks_covered: List[str]
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class InsuranceProduct(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    premium: float
+    coverage: float
+    duration: Optional[int] = None
+    category_id: int
+    category_name: str
+    category_description: Optional[str] = None
+    provider: str = "Unknown Provider"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    features: List[str] = []
+    suitable_for: List[str] = []
+    risks_covered: List[str] = []
 
 
 class InsuranceRecommendation(BaseModel):
-    product_id: str
+    product_id: int
     product_name: str
     provider: str
-    category: str
-    description: str
+    category_name: str
+    description: Optional[str] = None
+    premium: float
+    coverage: float
+    duration: Optional[int] = None
     estimated_price: float
     match_score: float = Field(..., ge=0.0, le=1.0)
-    features: List[str]
-    suitable_for: List[str]
-
-
-class RecommendationWithInsurance(InsuranceRecommendation):
-    risks_covered: List[str]
     recommendation_reason: str
+    features: List[str] = []
+    suitable_for: List[str] = []
+    risks_covered: List[str] = []

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from app.database import Base
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -89,14 +89,17 @@ class RecommendationResponse(RecommendationBase):
 
 
 class RecommendationWithInsurance(BaseModel):
-    product_id: str
+    product_id: int
     product_name: str
     provider: str
-    category: str
-    description: str
+    category_name: str
+    description: Optional[str] = None
+    premium: float
+    coverage: float
+    duration: Optional[int] = None
     estimated_price: float
-    match_score: float
-    features: List[str]
-    suitable_for: List[str]
-    risks_covered: List[str]
+    match_score: float = Field(..., ge=0.0, le=1.0)
     recommendation_reason: str
+    features: List[str] = []
+    suitable_for: List[str] = []
+    risks_covered: List[str] = []
