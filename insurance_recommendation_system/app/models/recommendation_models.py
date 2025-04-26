@@ -2,6 +2,14 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from app.database import Base
 
+class UserCheckInfo(BaseModel):
+    product_id: int
+    user_email: str
+
+class SuccessResponse(BaseModel):
+    code: int = Field(0, description="Success code")
+    message: str = Field("Success", description="Success message")
+
 class InsuranceRecommendationRequest(BaseModel):
     age: int
     gender: str

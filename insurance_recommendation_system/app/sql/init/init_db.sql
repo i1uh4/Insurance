@@ -156,8 +156,9 @@ CREATE TABLE IF NOT EXISTS product_view_history (
     id                         SERIAL       PRIMARY KEY,
     user_id                    INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     product_id                 INTEGER      NOT NULL REFERENCES insurance_products(id) ON DELETE CASCADE,
-    viewed_at                  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    view_duration_seconds      INTEGER
+    last_time_viewed_at        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    views_count                INTEGER      NOT NULL DEFAULT 0,
+    CONSTRAINT unique_user_product_view UNIQUE (user_id, product_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_product_view_history_user_id ON product_view_history(user_id);
@@ -166,8 +167,8 @@ COMMENT ON TABLE product_view_history IS 'История просмотров с
 COMMENT ON COLUMN product_view_history.id IS 'Уникальный идентификатор просмотра';
 COMMENT ON COLUMN product_view_history.user_id IS 'Ссылка на пользователя';
 COMMENT ON COLUMN product_view_history.product_id IS 'Ссылка на страховой продукт';
-COMMENT ON COLUMN product_view_history.viewed_at IS 'Дата и время просмотра';
-COMMENT ON COLUMN product_view_history.view_duration_seconds IS 'Длительность просмотра в секундах';
+COMMENT ON COLUMN product_view_history.last_time_viewed_at IS 'Дата и время просмотра';
+COMMENT ON COLUMN product_view_history.views_count IS 'Кол-во просмотров страхового продукта';
 
 
 -- Триггер автоматического создания профиля при регистрации пользователя
