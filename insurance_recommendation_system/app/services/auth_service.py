@@ -1,10 +1,17 @@
+import os
+from dotenv import load_dotenv
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from app.config import SECRET_KEY, ALGORITHM
+
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
 
 
 def create_verification_token(user_id: int) -> str:
     """Create a JWT token for email verification"""
+
     expire = datetime.utcnow() + timedelta(hours=24)
     to_encode = {
         "user_id": user_id,
