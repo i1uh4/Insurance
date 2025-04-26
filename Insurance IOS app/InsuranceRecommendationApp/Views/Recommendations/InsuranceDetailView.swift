@@ -1,8 +1,9 @@
 import SwiftUI
 
-
 struct InsuranceDetailView: View {
     var insurance: InsuranceProduct
+    var authViewModel: AuthViewModel
+    @ObservedObject var insuranceViewModel: InsuranceViewModel
     @State private var isPurchaseFormPresented = false
     
     var body: some View {
@@ -125,6 +126,34 @@ struct InsuranceDetailView: View {
         }
         .navigationTitle("Insurance Details")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let user = authViewModel.user {
+                insuranceViewModel.checkRecommendation(
+                    productId: insurance.productId,
+                    userEmail: user.email
+                )
+            }
+        }
+        .overlay(
+            Group {
+                if insuranceViewModel.isCheckingRecommendation {
+                    ProgressView("Checking recommendation...")
+                        .padding()
+                        .background(Color(.systemBackground).opacity(0.8))
+                        .cornerRadius(10)
+                }
+            }
+        )
+        .alert(isPresented: Binding<Bool>(
+            get: { insuranceViewModel.checkRecommendationError != nil },
+            set: { if !$0 { insuranceViewModel.checkRecommendationError = nil } }
+        )) {
+            Alert(
+                title: Text("Error"),
+                message: Text(insuranceViewModel.checkRecommendationError ?? "Unknown error"),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
     
     private func getCategoryIcon(for category: String) -> String {
@@ -132,4 +161,3 @@ struct InsuranceDetailView: View {
         return category?.icon ?? "questionmark"
     }
 }
-
