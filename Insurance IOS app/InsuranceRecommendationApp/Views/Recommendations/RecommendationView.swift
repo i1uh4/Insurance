@@ -142,7 +142,10 @@ struct RecommendationsContentView: View {
                     }
                     .padding(.horizontal)
                     
-                    RecommendationsList(recommendations: filteredRecommendations)
+                    RecommendationsList(
+                        recommendations: filteredRecommendations,
+                        authViewModel: authViewModel
+                    )
                 }
             }
         }
@@ -197,12 +200,20 @@ struct CategoryScrollView: View {
 
 struct RecommendationsList: View {
     var recommendations: [InsuranceProduct]
+    var authViewModel: AuthViewModel
+    @StateObject private var insuranceViewModel = InsuranceViewModel()
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 ForEach(recommendations) { insurance in
-                    NavigationLink(destination: InsuranceDetailView(insurance: insurance)) {
+                    NavigationLink(
+                        destination: InsuranceDetailView(
+                            insurance: insurance,
+                            authViewModel: authViewModel,
+                            insuranceViewModel: insuranceViewModel
+                        )
+                    ) {
                         InsuranceCard(insurance: insurance)
                     }
                     .buttonStyle(PlainButtonStyle())
