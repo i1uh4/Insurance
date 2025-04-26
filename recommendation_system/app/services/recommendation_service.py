@@ -1,10 +1,9 @@
-from typing import List, Dict, Any
+from typing import List
 import os
 from app.models.ml_model import InsuranceRecommenderModel
 from app.models.insurance_models import InsuranceRecommendation, InsuranceRecommendationRequest
 
 MODEL_PATH = os.getenv("MODEL_PATH", "sentence-transformers/all-MiniLM-L6-v2")
-PRODUCTS_DATA_PATH = os.getenv("PRODUCTS_DATA_PATH", "/app/model/products_data.json")
 
 
 class RecommendationService:
@@ -21,8 +20,7 @@ class RecommendationService:
 
         try:
             recommendations = self.model.get_recommendations(user_data)
-
             return [InsuranceRecommendation(**recommendation) for recommendation in recommendations]
         except Exception as e:
             print(f"Ошибка в сервисе рекомендаций: {str(e)}")
-            return []
+            raise
