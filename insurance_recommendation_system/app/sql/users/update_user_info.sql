@@ -1,4 +1,4 @@
-UPDATE user_info
+UPDATE user_profiles
 SET
     first_name = COALESCE(%(first_name)s, first_name),
     last_name = COALESCE(%(last_name)s, last_name),
@@ -16,6 +16,6 @@ WHERE id = %(id)s;
 
 UPDATE users
 SET
-    name = COALESCE(%(name)s, name),
+    user_name = COALESCE(%(user_name)s, user_name),
     updated_at = NOW()
 WHERE id = %(id)s;

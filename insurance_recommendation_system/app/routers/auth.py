@@ -26,7 +26,7 @@ async def register_user(user: UserCreate):
     hashed_password = get_password_hash(user.password)
 
     execute_sql_file("users/create_user.sql", {
-        "name": user.name,
+        "name": user.user_name,
         "email": user.email,
         "password": hashed_password
     })
@@ -77,7 +77,7 @@ def login(user_credentials: UserLogin):
         "token_type": "bearer",
         "user": {
             "id": user["id"],
-            "name": user["name"],
+            "user_name": user["user_name"],
             "email": user["email"],
             "is_verified": user["is_verified"],
             "created_at": user["created_at"]

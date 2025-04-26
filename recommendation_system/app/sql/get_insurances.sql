@@ -4,12 +4,12 @@ SELECT
     i.description,
     i.premium,
     i.coverage,
-    i.duration,
+    i.duration_months as duration,
     c.name AS category_name,
     c.description AS category_description,
     'test' as provider
 FROM
-    insurances i
+    insurance_products i
 JOIN
     insurance_categories c ON i.category_id = c.id
 ORDER BY

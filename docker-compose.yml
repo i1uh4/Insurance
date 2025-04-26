@@ -7,12 +7,12 @@ services:
       - ./insurance_recommendation_system/app/sql/init:/docker-entrypoint-initdb.d/
     environment:
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
+      - POSTGRES_USER=insurance
       - POSTGRES_DB=insurance
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U insurance" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,7 +32,7 @@ services:
       recommendation_system:
         condition: service_started
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
       - RECOMMENDATION_API_URL=http://recommendation_system:8001/api/recommendations
       - PYTHONPATH=/app
 
@@ -47,7 +47,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
       - PYTHONPATH=/app
 
   recommendation_system:
@@ -62,7 +62,7 @@ services:
       - PRODUCTS_DATA_PATH=/app/model/products_data.json
       - PYTHONHTTPSVERIFY=0
       - HF_HUB_DISABLE_SYMLINKS_WARNING=1
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
       - PYTHONPATH=/app
     command: >
       sh -c "python init_alembic.py &&

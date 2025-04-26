@@ -10,7 +10,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-# Import models
 from app.models.user_models import Base as UserBase
 from app.models.insurance_models import Base as InsuranceBase
 from app.models.recommendation_models import Base as RecommendationBase
