@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.database import execute_sql_file
 from app.models.user_models import UserResponse, UserInfoResponse, UserInfoRequest, UserUpdate
 from app.utils.auth import get_current_user
@@ -16,7 +16,8 @@ def get_current_user_info(request: UserInfoRequest):
 
     user_info = execute_sql_file("users/get_user_info.sql", {"email": email})
 
-    print(user_info)
+    if not user_info:
+        raise HTTPException(status_code=404, detail="User not found")
 
     user = user_info[0]
 

@@ -1,10 +1,18 @@
+import os
 import logging
+from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from aiosmtplib import SMTP
-from app.config import EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_PASSWORD, FRONTEND_URL, BACKEND_URL
 from app.services.auth_service import create_verification_token
 
+load_dotenv()
+
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_PORT = os.getenv('EMAIL_PORT')
+EMAIL_USERNAME = os.getenv('EMAIL_USERNAME')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+BACKEND_URL = os.getenv('BACKEND_URL')
 
 async def send_verification_email(recipient_email: str, user_id: int):
     """Send verification email to user using aiosmtplib"""

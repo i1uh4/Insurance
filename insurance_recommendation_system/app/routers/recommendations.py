@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
-from typing import List
-import httpx
 import os
+import httpx
+from typing import List
 from dotenv import load_dotenv
-
+from fastapi import APIRouter, HTTPException, status
 from app.models.recommendation_models import RecommendationWithInsurance, InsuranceRecommendationRequest
 
 load_dotenv()
@@ -27,9 +26,6 @@ async def get_recommendations(request: InsuranceRecommendationRequest):
 
     async with httpx.AsyncClient() as client:
         try:
-            print("Request payload:", request.dict())
-            print(f"Sending request to: {recommendation_system_url}")
-
             response = await client.post(recommendation_system_url, json=request.dict())
             response.raise_for_status()
             return response.json()
