@@ -2,8 +2,10 @@ import os
 import httpx
 from typing import List
 from dotenv import load_dotenv
+from app.database import execute_sql_file
 from fastapi import APIRouter, HTTPException, status
-from app.models.recommendation_models import RecommendationWithInsurance, InsuranceRecommendationRequest
+from app.models.recommendation_models import (RecommendationWithInsurance, InsuranceRecommendationRequest,
+                                              UserCheckInfo, SuccessResponse)
 
 load_dotenv()
 
@@ -11,6 +13,24 @@ router = APIRouter(
     prefix="/recommendation",
     tags=["Recommendations"]
 )
+
+
+@router.post("/check_recommendation", response_model=SuccessResponse)
+async def check_recommendation(request: UserCheckInfo):
+    """Set a flag that user already checked for a product"""
+    user = execute_sql_file("users/get_user_by_email.sql", {"email": request.user_email})
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email not found"
+        )
+
+    sql_params = {"user_id": user[0]["id"], "product_id": request.product_id}
+
+    execute_sql_file("insurances/insert_product_view.sql", sql_params)
+
+    return SuccessResponse()
 
 
 @router.post("/get_recommendations", response_model=List[RecommendationWithInsurance])
