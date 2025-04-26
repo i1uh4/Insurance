@@ -5,33 +5,6 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 
-class UserPreference(Base):
-    __tablename__ = "user_preferences"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    age = Column(Integer)
-    income = Column(Float)
-    occupation = Column(String)
-    health_condition = Column(String)
-    family_size = Column(Integer)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-
-class Recommendation(Base):
-    __tablename__ = "recommendations"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    insurance_id = Column(Integer, ForeignKey("insurances.id"))
-    score = Column(Float)
-    is_viewed = Column(Boolean, default=False)
-    is_purchased = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-
 class InsuranceRecommendationRequest(BaseModel):
     age: int
     gender: str

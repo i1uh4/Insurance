@@ -9,6 +9,8 @@ from psycopg2.extras import RealDictCursor
 
 warnings.filterwarnings("ignore")
 
+database_url = os.environ.get('DATABASE_URL')
+
 
 class InsuranceRecommenderModel:
     def __init__(self, model_path: str):
@@ -92,7 +94,6 @@ class InsuranceRecommenderModel:
 
     def _load_data_from_database(self):
         """Загрузка страховых продуктов из базы данных PostgreSQL"""
-        database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@db:5432/insurance')
 
         try:
             conn = psycopg2.connect(database_url)
