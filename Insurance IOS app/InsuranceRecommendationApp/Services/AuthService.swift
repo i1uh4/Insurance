@@ -24,8 +24,8 @@ class AuthService {
         return response.user
     }
 
-    func register(name: String, email: String, password: String) async throws -> String {
-        if name.isEmpty || email.isEmpty || password.isEmpty {
+    func register(user_name: String, email: String, password: String) async throws -> String {
+        if user_name.isEmpty || email.isEmpty || password.isEmpty {
             throw APIError.emptyFields
         }
 
@@ -33,7 +33,7 @@ class AuthService {
             throw APIError.invalidEmail
         }
 
-        let registerRequest = RegisterRequest(name: name, email: email, password: password)
+        let registerRequest = RegisterRequest(user_name: user_name, email: email, password: password)
         let jsonData = try JSONEncoder().encode(registerRequest)
 
         let response: RegisterResponse = try await APIService.shared.request(

@@ -10,7 +10,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=True)
+    user_name = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False, index=True)
     password = Column(String, nullable=False)
     is_verified = Column(Boolean, default=False)
@@ -32,7 +32,7 @@ class User(Base):
 
 
 class UserBase(BaseModel):
-    name: str
+    user_name: str
     email: EmailStr
 
 
@@ -41,7 +41,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    user_name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     age: Optional[int] = None
@@ -57,13 +57,13 @@ class UserUpdate(BaseModel):
 
 
 class UserInfoRequest(UserBase):
-    name: Optional[str] = None
+    user_name: Optional[str] = None
     email: str
 
 
 class UserResponse(UserBase):
     id: int
-    name: str
+    user_name: str
     email: str
     is_verified: bool
     created_at: datetime
@@ -73,7 +73,7 @@ class UserResponse(UserBase):
 
 
 class UserInfoResponse(UserBase):
-    name: str
+    user_name: str
     email: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None

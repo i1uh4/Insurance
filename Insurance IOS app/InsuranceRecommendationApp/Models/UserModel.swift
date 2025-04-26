@@ -2,7 +2,7 @@ import Foundation
 
 struct User: Codable, Equatable {
     var id: Int?
-    var name: String
+    var user_name: String
     var email: String
     var isVerified: Bool?
     var createdAt: String?
@@ -21,7 +21,7 @@ struct User: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case name
+        case user_name
         case email
         case isVerified = "is_verified"
         case createdAt = "created_at"
@@ -59,7 +59,7 @@ struct LoginRequest: Codable {
 }
 
 struct RegisterRequest: Codable {
-    let name:       String
+    let user_name:       String
     let email:      String
     let password:   String
 }

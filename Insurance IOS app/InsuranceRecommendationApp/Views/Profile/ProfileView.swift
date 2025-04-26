@@ -28,7 +28,7 @@ struct ProfileView: View {
             ZStack {
                 Form {
                     Section(header: Text("Account Information")) {
-                        LabeledContent("Username", value: authViewModel.user?.name ?? "")
+                        LabeledContent("Username", value: authViewModel.user?.user_name ?? "")
                         LabeledContent("Email", value: authViewModel.user?.email ?? "")
                     }
                     
@@ -60,7 +60,7 @@ struct ProfileView: View {
                             LabeledContent("Age", value: authViewModel.user?.age != nil ? "\(authViewModel.user!.age!)" : "Not set")
                             LabeledContent("Gender", value: authViewModel.user?.gender ?? "Not set")
                             LabeledContent("Occupation", value: authViewModel.user?.occupation ?? "Not set")
-                            LabeledContent("Annual Income", value: authViewModel.user?.income != nil ? "$\(Int(authViewModel.user!.income!))" : "Not set")
+                            LabeledContent("Annual Income", value: authViewModel.user?.income != nil ? "\(Int(authViewModel.user!.income!))₽" : "Not set")
                             LabeledContent("Marital Status", value: authViewModel.user?.maritalStatus ?? "Not set")
                         }
                     }

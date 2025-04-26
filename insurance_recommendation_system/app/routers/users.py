@@ -22,7 +22,7 @@ def get_current_user_info(request: UserInfoRequest):
     user = user_info[0]
 
     return {
-        "name": user["name"],
+        "user_name": user["user_name"],
         "email": user["email"],
         "first_name": user["first_name"],
         "last_name": user["last_name"],
@@ -43,7 +43,7 @@ def get_current_user_info(request: UserInfoRequest):
 def update_user_info(user_data: UserUpdate, current_user: dict = Depends(get_current_user)):
     """Update user info"""
     expected_fields = [
-        "name", "first_name", "last_name", "age", "gender", "occupation",
+        "user_name", "first_name", "last_name", "age", "gender", "occupation",
         "income", "marital_status", "has_children", "has_vehicle", "has_home",
         "has_medical_conditions", "travel_frequency"
     ]
@@ -59,7 +59,7 @@ def update_user_info(user_data: UserUpdate, current_user: dict = Depends(get_cur
 
     return {
         "id": updated_user["id"],
-        "name": updated_user["name"],
+        "user_name": updated_user["user_name"],
         "email": updated_user["email"],
         "is_verified": updated_user["is_verified"],
         "created_at": updated_user["created_at"]

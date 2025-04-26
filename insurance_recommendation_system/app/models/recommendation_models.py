@@ -1,9 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
-from sqlalchemy.sql import func
-from app.database import Base
 from pydantic import BaseModel, Field
 from typing import Optional, List
-
+from app.database import Base
 
 class InsuranceRecommendationRequest(BaseModel):
     age: int

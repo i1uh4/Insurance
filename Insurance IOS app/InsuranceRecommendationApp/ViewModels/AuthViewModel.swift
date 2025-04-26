@@ -37,13 +37,13 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func register(name: String, email: String, password: String) {
+    func register(user_name: String, email: String, password: String) {
         isLoading = true
         registerAlert = nil
         
         Task {
             do {
-                let message = try await AuthService.shared.register(name: name, email: email, password: password)
+                let message = try await AuthService.shared.register(user_name: user_name, email: email, password: password)
                 DispatchQueue.main.async {
                     self.isLoading = false
                     self.registerAlert = AlertItem(

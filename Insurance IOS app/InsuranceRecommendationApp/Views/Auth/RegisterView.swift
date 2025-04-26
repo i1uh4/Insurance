@@ -4,7 +4,7 @@ struct RegisterView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.presentationMode) var presentationMode
     
-    @State private var username = ""
+    @State private var user_name = ""
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
@@ -19,7 +19,7 @@ struct RegisterView: View {
                     .padding(.bottom, 30)
                 
                 VStack(spacing: 15) {
-                    TextField("Username", text: $username)
+                    TextField("Username", text: $user_name)
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(10)
@@ -59,7 +59,7 @@ struct RegisterView: View {
                     title: "Register",
                     action: {
                         if password == confirmPassword {
-                            authViewModel.register(name: username, email: email, password: password)
+                            authViewModel.register(user_name: user_name, email: email, password: password)
                         } else {
                             passwordsMatch = false
                         }
@@ -67,7 +67,7 @@ struct RegisterView: View {
                     isLoading: authViewModel.isLoading
                 )
                 .padding(.top, 10)
-                .disabled(username.isEmpty || email.isEmpty)
+                .disabled(user_name.isEmpty || email.isEmpty)
                 
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()

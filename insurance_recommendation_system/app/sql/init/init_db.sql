@@ -1,6 +1,7 @@
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
     id                         SERIAL       PRIMARY KEY,
+    user_name                  VARCHAR(255) UNIQUE NOT NULL,
     email                      VARCHAR(255) UNIQUE NOT NULL,
     password                   VARCHAR(255) NOT NULL,
     --
@@ -47,8 +48,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     travel_frequency           VARCHAR(50),
     --
     created_at                 TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at                 TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    profile_completed          BOOLEAN      NOT NULL DEFAULT FALSE
+    updated_at                 TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
@@ -70,7 +70,6 @@ COMMENT ON COLUMN user_profiles.has_medical_conditions IS 'Наличие мед
 COMMENT ON COLUMN user_profiles.travel_frequency IS 'Частота путешествий';
 COMMENT ON COLUMN user_profiles.created_at IS 'Дата и время создания профиля';
 COMMENT ON COLUMN user_profiles.updated_at IS 'Дата и время обновления профиля';
-COMMENT ON COLUMN user_profiles.profile_completed IS 'Флаг заполненности профиля';
 
 -- Таблица категорий страховых продуктов
 CREATE TABLE IF NOT EXISTS insurance_categories (
@@ -170,41 +169,6 @@ COMMENT ON COLUMN product_view_history.product_id IS 'Ссылка на стра
 COMMENT ON COLUMN product_view_history.viewed_at IS 'Дата и время просмотра';
 COMMENT ON COLUMN product_view_history.view_duration_seconds IS 'Длительность просмотра в секундах';
 
--- Таблица для хранения приобретенных страховых полисов
-CREATE TABLE IF NOT EXISTS insurance_policies (
-    id                         SERIAL       PRIMARY KEY,
-    user_id                    INTEGER      NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    product_id                 INTEGER      NOT NULL REFERENCES insurance_products(id) ON DELETE RESTRICT,
-    --
-    policy_number              VARCHAR(50)  UNIQUE NOT NULL,
-    premium_paid               DECIMAL(15, 2) NOT NULL,
-    coverage_amount            DECIMAL(15, 2) NOT NULL,
-    --
-    start_date                 DATE         NOT NULL,
-    end_date                   DATE,
-    --
-    status                     VARCHAR(50)  NOT NULL DEFAULT 'active',
-    --
-    created_at                 TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at                 TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Основные индексы для работы с полисами
-CREATE INDEX IF NOT EXISTS idx_insurance_policies_user_id ON insurance_policies(user_id);
-CREATE INDEX IF NOT EXISTS idx_insurance_policies_status ON insurance_policies(status);
-
-COMMENT ON TABLE insurance_policies IS 'Приобретенные страховые полисы';
-COMMENT ON COLUMN insurance_policies.id IS 'Уникальный идентификатор полиса';
-COMMENT ON COLUMN insurance_policies.user_id IS 'Ссылка на пользователя-страхователя';
-COMMENT ON COLUMN insurance_policies.product_id IS 'Ссылка на страховой продукт';
-COMMENT ON COLUMN insurance_policies.policy_number IS 'Номер страхового полиса';
-COMMENT ON COLUMN insurance_policies.premium_paid IS 'Оплаченная страховая премия';
-COMMENT ON COLUMN insurance_policies.coverage_amount IS 'Сумма страхового покрытия';
-COMMENT ON COLUMN insurance_policies.start_date IS 'Дата начала действия полиса';
-COMMENT ON COLUMN insurance_policies.end_date IS 'Дата окончания действия полиса (NULL для бессрочных)';
-COMMENT ON COLUMN insurance_policies.status IS 'Статус полиса (active, expired, cancelled)';
-COMMENT ON COLUMN insurance_policies.created_at IS 'Дата и время создания записи';
-COMMENT ON COLUMN insurance_policies.updated_at IS 'Дата и время обновления записи';
 
 -- Триггер автоматического создания профиля при регистрации пользователя
 CREATE OR REPLACE FUNCTION create_user_profile()
