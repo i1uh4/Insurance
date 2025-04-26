@@ -1,12 +1,10 @@
-from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from app.database import Base
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
 
 
-# SQLAlchemy Models
 class UserPreference(Base):
     __tablename__ = "user_preferences"
 
@@ -34,40 +32,6 @@ class Recommendation(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
-# Pydantic Models
-class PreferenceBase(BaseModel):
-    age: int
-    income: float
-    occupation: str
-    health_condition: str
-    family_size: int
-
-
-class PreferenceCreate(PreferenceBase):
-    pass
-
-
-class PreferenceResponse(PreferenceBase):
-    id: int
-    user_id: int
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class RecommendationBase(BaseModel):
-    user_id: int
-    insurance_id: int
-    score: float
-    is_viewed: Optional[bool] = False
-    is_purchased: Optional[bool] = False
-
-
-class RecommendationCreate(RecommendationBase):
-    pass
-
-
 class InsuranceRecommendationRequest(BaseModel):
     age: int
     gender: str
@@ -79,13 +43,6 @@ class InsuranceRecommendationRequest(BaseModel):
     has_home: bool
     has_medical_conditions: bool
     travel_frequency: str
-
-class RecommendationResponse(RecommendationBase):
-    id: int
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
 
 
 class RecommendationWithInsurance(BaseModel):

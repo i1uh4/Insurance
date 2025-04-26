@@ -1,11 +1,14 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import os
 import pathlib
+import psycopg2
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from psycopg2.extras import RealDictCursor
+from sqlalchemy.ext.declarative import declarative_base
 
-from app.config import DATABASE_URL
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -18,6 +21,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 def execute_sql_file(file_path, params=None):
     base_path = pathlib.Path(__file__).parent.absolute()

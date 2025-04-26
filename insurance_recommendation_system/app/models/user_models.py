@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
 from sqlalchemy.sql import func
 from app.database import Base
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
@@ -56,14 +56,6 @@ class UserUpdate(BaseModel):
     travel_frequency: Optional[str] = None
 
 
-class UserCredentialsRequest(UserBase):
-    id: int
-    name: str
-    email: str
-    is_verified: bool
-    created_at: datetime
-
-
 class UserInfoRequest(UserBase):
     name: Optional[str] = None
     email: str
@@ -100,11 +92,6 @@ class UserInfoResponse(UserBase):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
-
-class TokenData(BaseModel):
-    id: Optional[int] = None
-    email: Optional[str] = None
 
 
 class Token(BaseModel):
