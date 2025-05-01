@@ -1,13 +1,10 @@
 import os
-import warnings
+import json
 import torch
 from typing import List, Dict, Any
-import ssl
-from pathlib import Path
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-warnings.filterwarnings("ignore")
+from transformers import AutoTokenizer, AutoModel, pipeline
 
 database_url = os.environ.get('DATABASE_URL')
 
@@ -17,81 +14,44 @@ class InsuranceRecommenderModel:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.insurances = []
 
+        # Load insurance data from database
         try:
             self._load_data_from_database()
         except Exception as e:
-            print(f"Ошибка при загрузке данных из базы данных: {e}")
+            print(f"Error loading data from database: {e}")
             self.insurances = []
 
+        # Load model for text embedding
         try:
-            print(f"Пытаемся загрузить модель из {model_path}...")
+            print(f"Loading model from {model_path}...")
 
-            cache_dir = Path("/app/model_cache")
-            cache_dir.mkdir(exist_ok=True)
-
-            os.environ['CURL_CA_BUNDLE'] = ''
-            os.environ['REQUESTS_CA_BUNDLE'] = ''
-            os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
-            os.environ['TRANSFORMERS_OFFLINE'] = '0'
-
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-            ssl_context = ssl._create_unverified_context()
-            ssl._create_default_https_context = lambda: ssl_context
-
+            # Use sentence transformers for embedding
             if model_path.startswith("sentence-transformers/"):
                 try:
                     from sentence_transformers import SentenceTransformer
-                    print("Загрузка модели с помощью SentenceTransformer...")
-
-                    import huggingface_hub.constants
-                    huggingface_hub.constants.HF_HUB_DISABLE_SYMLINKS_WARNING = True
-
-                    self.model = SentenceTransformer(model_path, cache_folder=str(cache_dir),
-                                                     use_auth_token=False)
-                    print("Модель успешно загружена!")
-                except Exception as e1:
-                    print(f"Ошибка загрузки через SentenceTransformer: {e1}")
-                    try:
-                        from transformers import AutoModel, AutoTokenizer
-                        print("Загрузка модели с помощью transformers...")
-
-                        self.tokenizer = AutoTokenizer.from_pretrained(
-                            model_path,
-                            cache_dir=str(cache_dir),
-                            local_files_only=False,
-                            trust_remote_code=True,
-                            use_auth_token=False,
-                            proxies=None
-                        )
-                        self.model = AutoModel.from_pretrained(
-                            model_path,
-                            cache_dir=str(cache_dir),
-                            local_files_only=False,
-                            trust_remote_code=True,
-                            use_auth_token=False,
-                            proxies=None
-                        ).to(self.device)
-                        print("Модель успешно загружена!")
-                    except Exception as e2:
-                        print(f"Ошибка загрузки через transformers: {e2}")
-                        raise
+                    print("Loading model using SentenceTransformer...")
+                    self.model = SentenceTransformer(model_path)
+                    self.use_sentence_transformer = True
+                    print("Model successfully loaded!")
+                except Exception as e:
+                    print(f"Error loading through SentenceTransformer: {e}")
+                    raise
             else:
                 try:
-                    from transformers import AutoModel, AutoTokenizer
-                    self.tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-                    self.model = AutoModel.from_pretrained(model_path, local_files_only=True).to(self.device)
+                    # Fallback to regular transformers
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+                    self.model = AutoModel.from_pretrained(model_path).to(self.device)
+                    self.use_sentence_transformer = False
+                    print("Model successfully loaded!")
                 except Exception as e:
-                    print(f"Ошибка загрузки локальной модели: {e}")
+                    print(f"Error loading through transformers: {e}")
                     raise
         except Exception as e:
-            print(f"Общая ошибка при инициализации модели: {e}")
+            print(f"General error during model initialization: {e}")
             raise
 
     def _load_data_from_database(self):
-        """Загрузка страховых продуктов из базы данных PostgreSQL"""
-
+        """Load insurance products from PostgreSQL database"""
         try:
             conn = psycopg2.connect(database_url)
 
@@ -101,138 +61,256 @@ class InsuranceRecommenderModel:
 
                 cursor.execute(sql_query)
                 self.insurances = cursor.fetchall()
-                print(f"Загружено {len(self.insurances)} страховых полисов из базы данных")
+                print(f"Loaded {len(self.insurances)} insurance policies from database")
 
             conn.close()
         except Exception as e:
-            print(f"Ошибка при подключении к базе данных: {e}")
+            print(f"Error connecting to database: {e}")
             raise
-
-    def _preprocess_user_data(self, user_data: Dict[str, Any]) -> str:
-        profile = f"Возраст: {user_data['age']}, "
-        profile += f"Пол: {user_data['gender']}, "
-        profile += f"Профессия: {user_data['occupation']}, "
-        profile += f"Доход: {user_data['income']}, "
-        profile += f"Семейное положение: {user_data['marital_status']}, "
-        profile += f"Есть дети: {'Да' if user_data['has_children'] else 'Нет'}, "
-        profile += f"Владеет транспортным средством: {'Да' if user_data['has_vehicle'] else 'Нет'}, "
-        profile += f"Владеет недвижимостью: {'Да' if user_data['has_home'] else 'Нет'}, "
-        profile += f"Имеет медицинские проблемы: {'Да' if user_data['has_medical_conditions'] else 'Нет'}, "
-        profile += f"Частота путешествий: {user_data['travel_frequency']}"
-        return profile
 
     def _encode_text(self, text: str) -> torch.Tensor:
-        """Кодирование текста в векторное представление"""
-        try:
-            if hasattr(self.model, 'encode'):
-                return torch.tensor(self.model.encode([text]), device=self.device)
-            else:
-                inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
-                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        """Encode text to vector representation"""
+        if self.use_sentence_transformer:
+            return torch.tensor(self.model.encode([text])).to(self.device)
+        else:
+            inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-                with torch.no_grad():
-                    outputs = self.model(**inputs)
+            with torch.no_grad():
+                outputs = self.model(**inputs)
 
-                embeddings = outputs.last_hidden_state.mean(dim=1)
-                return embeddings
-        except Exception as e:
-            print(f"Ошибка при кодировании текста: {e}")
-            raise
+            # Mean pooling
+            embeddings = outputs.last_hidden_state.mean(dim=1)
+            return embeddings
 
-    def _encode_insurance(self, insurance: Dict[str, Any]) -> torch.Tensor:
-        insurance_text = f"Название: {insurance['product_name']}, "
-        insurance_text += f"Категория: {insurance['category_name']}, "
-        insurance_text += f"Описание: {insurance['description']}, "
-        insurance_text += f"Премия: {insurance['premium']}, "
-        insurance_text += f"Покрытие: {insurance['coverage']}, "
-        insurance_text += f"Длительность: {insurance['duration']}"
+    def _format_user_profile(self, user_data: Dict[str, Any]) -> str:
+        """Format user data into a rich profile description"""
+        # Build a detailed user profile
+        profile = f"A {user_data['age']}-year-old {user_data['gender']} working as {user_data['occupation']} "
+        profile += f"with an annual income of ${user_data['income']}. "
+        profile += f"Marital status: {user_data['marital_status']}. "
 
-        return self._encode_text(insurance_text)
+        if user_data['has_children']:
+            profile += "Has children. "
+        else:
+            profile += "No children. "
+
+        if user_data['has_vehicle']:
+            profile += "Owns a vehicle. "
+        else:
+            profile += "Does not own a vehicle. "
+
+        if user_data['has_home']:
+            profile += "Owns a home. "
+        else:
+            profile += "Does not own a home. "
+
+        if user_data['has_medical_conditions']:
+            profile += "Has medical conditions. "
+        else:
+            profile += "No significant medical conditions. "
+
+        profile += f"Travel frequency: {user_data['travel_frequency']}."
+
+        return profile
+
+    def _format_insurance_info(self, insurance: Dict[str, Any]) -> str:
+        """Format insurance data into a rich description"""
+        # Create detailed insurance description
+        info = f"Insurance: {insurance['product_name']} by {insurance['provider']} "
+        info += f"in the {insurance['category_name']} category. "
+        info += f"{insurance['description']} "
+        info += f"Premium: ${float(insurance['premium']):.2f}. "
+        info += f"Coverage: ${float(insurance['coverage']):.2f}. "
+        info += f"Duration: {insurance['duration']} months."
+
+        return info
 
     def _calculate_match_score(self, user_embedding: torch.Tensor, insurance_embedding: torch.Tensor) -> float:
+        """Calculate semantic similarity between user profile and insurance description"""
+        # Normalize vectors
         user_norm = user_embedding / user_embedding.norm(dim=1, keepdim=True)
         insurance_norm = insurance_embedding / insurance_embedding.norm(dim=1, keepdim=True)
 
+        # Calculate cosine similarity
         cos_sim = torch.sum(user_norm * insurance_norm, dim=1)
+
+        # Convert to score between 0 and 1
         score = (cos_sim + 1) / 2
 
         return float(score.item())
 
-    def _generate_recommendation_reason(self, user_data: Dict[str, Any], insurance: Dict[str, Any],
-                                        score: float) -> str:
+    def _generate_recommendation_reason(self, user_data: Dict[str, Any], insurance: Dict[str, Any]) -> str:
+        """Generate a detailed recommendation reason based on user profile and insurance details"""
         reasons = []
 
-        if insurance['category_name'] == 'Медицинское страхование' and user_data['has_medical_conditions']:
+        # Health insurance recommendations
+        if insurance['category_name'] == 'Медицинское страхование':
+            if user_data['has_medical_conditions']:
+                reasons.append(
+                    "this health insurance policy offers comprehensive coverage for your existing medical conditions"
+                )
+            else:
+                reasons.append(
+                    "this health insurance policy provides preventive care and coverage in case of unexpected medical needs"
+                )
+
+        # Auto insurance recommendations
+        if insurance['category_name'] == 'Автострахование':
+            if user_data['has_vehicle']:
+                if user_data['income'] > 75000:
+                    reasons.append(
+                        "this premium auto insurance policy provides extensive coverage for your vehicle with additional benefits"
+                    )
+                else:
+                    reasons.append(
+                        "this auto insurance policy offers essential protection for your vehicle at an affordable price"
+                    )
+
+        # Home insurance recommendations
+        if insurance['category_name'] == 'Страхование недвижимости':
+            if user_data['has_home']:
+                if user_data['has_children']:
+                    reasons.append(
+                        "this home insurance policy provides comprehensive coverage for your property and additional protection for families with children"
+                    )
+                else:
+                    reasons.append(
+                        "this home insurance policy offers tailored protection for your property"
+                    )
+
+        # Life insurance recommendations
+        if insurance['category_name'] == 'Страхование жизни':
+            if user_data['has_children'] or user_data['marital_status'] == 'married':
+                reasons.append(
+                    "this life insurance policy ensures financial security for your family in case of unforeseen circumstances"
+                )
+            else:
+                reasons.append(
+                    "this life insurance policy provides coverage that aligns with your individual needs"
+                )
+
+        # Travel insurance recommendations
+        if insurance['category_name'] == 'Страхование путешествий':
+            if user_data['travel_frequency'] in ['often', 'very_often']:
+                reasons.append(
+                    "this travel insurance offers comprehensive protection during your frequent trips"
+                )
+            else:
+                reasons.append(
+                    "this travel insurance provides essential coverage for your occasional travel needs"
+                )
+
+        # Age-specific recommendations
+        if user_data['age'] < 30:
             reasons.append(
-                "учитывая ваши медицинские условия, этот полис медицинского страхования предоставит оптимальное покрытие")
+                "this policy is designed with features beneficial for younger policyholders"
+            )
+        elif user_data['age'] >= 60:
+            reasons.append(
+                "this policy includes special provisions for senior clients"
+            )
 
-        if insurance['category_name'] == 'Автострахование' and user_data['has_vehicle']:
-            reasons.append("как владельцу транспортного средства, этот полис предоставит вам необходимую защиту")
+        # Income-based recommendations
+        if float(insurance['premium']) <= user_data['income'] * 0.01:
+            reasons.append(
+                "the premium for this policy fits comfortably within your budget"
+            )
 
-        if insurance['category_name'] == 'Страхование недвижимости' and user_data['has_home']:
-            reasons.append("как владельцу недвижимости, этот полис защитит ваше имущество")
-
-        if insurance['category_name'] == 'Страхование жизни' and (
-                user_data['has_children'] or user_data['marital_status'] == 'married'):
-            reasons.append("этот полис обеспечит финансовую защиту для вашей семьи")
-
-        if insurance['category_name'] == 'Страхование путешествий' and user_data['travel_frequency'] in ['often',
-                                                                                                         'very_often']:
-            reasons.append("учитывая частоту ваших поездок, этот полис страхования путешествий обеспечит вам защиту")
-
-        if float(insurance['premium']) <= user_data['income'] * 0.05:
-            reasons.append("стоимость данного полиса соответствует вашему уровню дохода")
-
+        # If no specific reasons were found, provide a generic one
         if not reasons:
-            reasons = [f"этот полис имеет высокий рейтинг соответствия ({score:.2f}) для вашего профиля"]
+            reasons = ["this policy has a good match for your overall profile"]
 
-        return "Рекомендовано, потому что " + " и ".join(reasons) + "."
+        return "We recommend this policy because " + " and ".join(reasons) + "."
 
     def _estimate_price(self, user_data: Dict[str, Any], insurance: Dict[str, Any]) -> float:
-        """Оценка стоимости страхового полиса"""
+        """Calculate personalized price estimate based on user profile and base premium"""
         base_price = float(insurance['premium'])
 
-        age_factor = min(2.0, max(0.8, user_data['age'] / 40))
-        income_factor = min(1.5, max(0.5, user_data['income'] / 50000))
+        # Age factor - higher for very young and very old
+        age = user_data['age']
+        if age < 25:
+            age_factor = 1.3
+        elif age > 65:
+            age_factor = 1.4
+        elif age > 50:
+            age_factor = 1.2
+        else:
+            age_factor = 1.0
 
-        risk_factors = 1.0
-        if user_data['has_medical_conditions']:
-            risk_factors *= 1.2
+        # Income factor - slight discount for higher incomes
+        income = user_data['income']
+        if income > 100000:
+            income_factor = 0.9
+        elif income > 50000:
+            income_factor = 0.95
+        else:
+            income_factor = 1.0
+
+        # Risk factors
+        risk_factor = 1.0
+
+        if user_data['has_medical_conditions'] and insurance['category_name'] == 'Медицинское страхование':
+            risk_factor *= 1.3
+
         if user_data['has_children']:
-            risk_factors *= 1.1
+            risk_factor *= 1.1
 
-        estimated_price = base_price * age_factor * income_factor * risk_factors
+        # Category specific factors
+        if insurance['category_name'] == 'Автострахование' and user_data['has_vehicle']:
+            risk_factor *= 1.0
 
-        return min(base_price * 1.5, max(base_price * 0.7, estimated_price))
+        if insurance['category_name'] == 'Страхование недвижимости' and user_data['has_home']:
+            risk_factor *= 1.0
+
+        if insurance['category_name'] == 'Страхование путешествий':
+            if user_data['travel_frequency'] == 'very_often':
+                risk_factor *= 1.4
+            elif user_data['travel_frequency'] == 'often':
+                risk_factor *= 1.2
+
+        # Calculate final price
+        estimated_price = base_price * age_factor * income_factor * risk_factor
+
+        # Ensure price stays within reasonable bounds
+        return min(base_price * 2.0, max(base_price * 0.7, estimated_price))
 
     def get_recommendations(self, user_data: Dict[str, Any], top_n: int = 5) -> List[Dict[str, Any]]:
+        """Get personalized insurance recommendations for a user"""
         if not self.insurances:
-            print("Предупреждение: список страховых полисов пуст, пытаемся обновить из базы данных")
+            print("Warning: Insurance list is empty, trying to update from database")
             self._load_data_from_database()
 
             if not self.insurances:
                 return []
 
-        user_profile_text = self._preprocess_user_data(user_data)
-        user_embedding = self._encode_text(user_profile_text)
+        user_profile = self._format_user_profile(user_data)
+        user_embedding = self._encode_text(user_profile)
 
         recommendations = []
 
         for insurance in self.insurances:
-            insurance_embedding = self._encode_insurance(insurance)
-            match_score = self._calculate_match_score(user_embedding, insurance_embedding)
+            try:
+                insurance_info = self._format_insurance_info(insurance)
+                insurance_embedding = self._encode_text(insurance_info)
 
-            if match_score > 0.3:
-                estimated_price = self._estimate_price(user_data, insurance)
-                recommendation_reason = self._generate_recommendation_reason(
-                    user_data, insurance, match_score)
+                match_score = self._calculate_match_score(user_embedding, insurance_embedding)
 
-                recommendation = dict(insurance)
-                recommendation['match_score'] = match_score
-                recommendation['estimated_price'] = estimated_price
-                recommendation['recommendation_reason'] = recommendation_reason
+                if match_score > 0.3:
+                    recommendation_reason = self._generate_recommendation_reason(user_data, insurance)
 
-                recommendations.append(recommendation)
+                    estimated_price = self._estimate_price(user_data, insurance)
+
+                    recommendation = dict(insurance)
+                    recommendation['match_score'] = match_score
+                    recommendation['estimated_price'] = estimated_price
+                    recommendation['recommendation_reason'] = recommendation_reason
+
+                    recommendations.append(recommendation)
+            except Exception as e:
+                print(f"Error processing insurance {insurance.get('product_id', 'unknown')}: {e}")
+                continue
 
         recommendations.sort(key=lambda x: x["match_score"], reverse=True)
+
         return recommendations[:top_n]

@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: insurance-db
+    container_name: insurance-postgres-db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
       - ./insurance_recommendation_system/app/sql/init:/docker-entrypoint-initdb.d/
@@ -19,7 +19,7 @@ services:
 
   app:
     build: ./insurance_recommendation_system
-    container_name: backend-insurance-app
+    container_name: insurance-api-service
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./insurance_recommendation_system:/app
@@ -38,7 +38,7 @@ services:
 
   migration:
     build: ./insurance_recommendation_system
-    container_name: db-migration-service
+    container_name: insurance-db-migration
     command: tail -f /dev/null
     volumes:
       - ./insurance_recommendation_system:/app
@@ -53,6 +53,7 @@ services:
   recommendation_system:
     build:
       context: ./recommendation_system
+    container_name: insurance-ml-recommendation
     volumes:
       - ./recommendation_system:/app
     ports:
@@ -70,7 +71,8 @@ services:
              python watch_changes.py &
              uvicorn main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

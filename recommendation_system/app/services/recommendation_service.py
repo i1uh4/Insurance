@@ -3,6 +3,7 @@ import os
 from app.models.ml_model import InsuranceRecommenderModel
 from app.models.insurance_models import InsuranceRecommendation, InsuranceRecommendationRequest
 
+# Use sentence-transformers model which is already installed
 MODEL_PATH = os.getenv("MODEL_PATH", "sentence-transformers/all-MiniLM-L6-v2")
 
 
@@ -22,5 +23,5 @@ class RecommendationService:
             recommendations = self.model.get_recommendations(user_data)
             return [InsuranceRecommendation(**recommendation) for recommendation in recommendations]
         except Exception as e:
-            print(f"Ошибка в сервисе рекомендаций: {str(e)}")
+            print(f"Error in recommendation service: {str(e)}")
             raise

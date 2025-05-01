@@ -32,10 +32,8 @@ def init_alembic():
 
         new_run_migrations_online = """def run_migrations_online() -> None:
     \"\"\"Run migrations in 'online' mode.\"\"\"
-    # Исправленная часть - используем правильный способ получения конфигурации
     configuration = config.get_section(config.config_ini_section)
     if configuration is None:
-        # Если секция не найдена, создаем пустой словарь
         configuration = {}
 
     url = config.get_main_option("sqlalchemy.url")

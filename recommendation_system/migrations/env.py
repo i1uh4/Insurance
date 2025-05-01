@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.models.recommendation_models import Base
+from app.models.rec_models import Base
 
 config = context.config
 
@@ -31,10 +31,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    # Исправленная часть - используем правильный способ получения конфигурации
     configuration = config.get_section(config.config_ini_section)
     if configuration is None:
-        # Если секция не найдена, создаем пустой словарь
         configuration = {}
 
     url = config.get_main_option("sqlalchemy.url")
