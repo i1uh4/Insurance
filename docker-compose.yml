@@ -1,10 +1,11 @@
 services:
-  db:
+  db_master:
     image: postgres:16
-    container_name: insurance-postgres-db
+    container_name: insurance-postgres-master
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_master_data:/var/lib/postgresql/data/
       - ./insurance_recommendation_system/app/sql/init:/docker-entrypoint-initdb.d/
+      - ./postgres/configs/master:/etc/postgresql/
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=insurance
@@ -16,6 +17,29 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  db_slave:
+    image: postgres:16
+    container_name: insurance-postgres-slave
+    volumes:
+      - postgres_slave_data:/var/lib/postgresql/data/
+      - ./postgres/configs/slave:/etc/postgresql/
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=insurance
+      - POSTGRES_DB=insurance
+    ports:
+      - "5433:5432"
+    depends_on:
+      db_master:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U insurance" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
 
   app:
     build: ./insurance_recommendation_system
@@ -27,12 +51,13 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      db:
+      db_master:
         condition: service_healthy
       recommendation_system:
         condition: service_started
     environment:
-      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db_master:5432/insurance
+      - DATABASE_SLAVE_URL=postgresql://insurance:postgres@db_slave:5432/insurance
       - RECOMMENDATION_API_URL=http://recommendation_system:8001/api/recommendations
       - PYTHONPATH=/app
 
@@ -44,10 +69,10 @@ services:
       - ./insurance_recommendation_system:/app
       - ./migrations:/app/migrations
     depends_on:
-      db:
+      db_master:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db_master:5432/insurance
       - PYTHONPATH=/app
 
   recommendation_system:
@@ -63,7 +88,7 @@ services:
       - PRODUCTS_DATA_PATH=/app/model/products_data.json
       - PYTHONHTTPSVERIFY=0
       - HF_HUB_DISABLE_SYMLINKS_WARNING=1
-      - DATABASE_URL=postgresql://insurance:postgres@db:5432/insurance
+      - DATABASE_URL=postgresql://insurance:postgres@db_master:5432/insurance
       - PYTHONPATH=/app
     command: >
       sh -c "python init_alembic.py &&
@@ -71,8 +96,25 @@ services:
              python watch_changes.py &
              uvicorn main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app"
     depends_on:
-      db:
+      db_master:
         condition: service_healthy
 
+  replication_setup:
+    image: postgres:16
+    container_name: insurance-replication-setup
+    volumes:
+      - ./postgres/scripts:/scripts
+    environment:
+      - PGPASSWORD=postgres
+    depends_on:
+      db_master:
+        condition: service_healthy
+      db_slave:
+        condition: service_healthy
+    command: >
+      sh -c "chmod +x /scripts/setup_replication.sh && 
+             /scripts/setup_replication.sh"
+
 volumes:
-  postgres_data:
+  postgres_master_data:
+  postgres_slave_data:

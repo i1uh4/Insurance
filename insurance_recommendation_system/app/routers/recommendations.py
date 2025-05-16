@@ -1,11 +1,11 @@
+from fastapi import APIRouter, HTTPException, status
+from app.database import execute_sql_file
+from app.models.recommendation_models import (RecommendationWithInsurance, InsuranceRecommendationRequest,
+                                              UserCheckInfo, SuccessResponse)
 import os
 import httpx
 from typing import List
 from dotenv import load_dotenv
-from app.database import execute_sql_file
-from fastapi import APIRouter, HTTPException, status
-from app.models.recommendation_models import (RecommendationWithInsurance, InsuranceRecommendationRequest,
-                                              UserCheckInfo, SuccessResponse)
 
 load_dotenv()
 
@@ -18,7 +18,8 @@ router = APIRouter(
 @router.post("/check_recommendation", response_model=SuccessResponse)
 async def check_recommendation(request: UserCheckInfo):
     """Set a flag that user already checked for a product"""
-    user = execute_sql_file("users/get_user_by_email.sql", {"email": request.user_email})
+    # Используем мастер для чтения, т.к. за этим последует запись
+    user = execute_sql_file("users/get_user_by_email.sql", {"email": request.user_email}, read_only=False)
 
     if not user:
         raise HTTPException(
@@ -28,7 +29,8 @@ async def check_recommendation(request: UserCheckInfo):
 
     sql_params = {"user_id": user[0]["id"], "product_id": request.product_id}
 
-    execute_sql_file("insurances/insert_product_view.sql", sql_params)
+    # Используем мастер для записи
+    execute_sql_file("insurances/insert_product_view.sql", sql_params, read_only=False)
 
     return SuccessResponse()
 

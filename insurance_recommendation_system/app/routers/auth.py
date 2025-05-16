@@ -15,7 +15,8 @@ router = APIRouter(
 @router.post("/register", response_model=dict)
 async def register_user(user: UserCreate):
     """Register a new user"""
-    existing_user = execute_sql_file("users/get_user_by_email.sql", {"email": user.email})
+    # Проверка на существующего пользователя должна быть на мастере, чтобы избежать проблем с задержкой репликации
+    existing_user = execute_sql_file("users/get_user_by_email.sql", {"email": user.email}, read_only=False)
 
     if existing_user:
         raise HTTPException(
@@ -25,13 +26,15 @@ async def register_user(user: UserCreate):
 
     hashed_password = get_password_hash(user.password)
 
+    # Запись нового пользователя на мастер
     execute_sql_file("users/create_user.sql", {
         "name": user.user_name,
         "email": user.email,
         "password": hashed_password
-    })
+    }, read_only=False)
 
-    created_user = execute_sql_file("users/get_user_by_email.sql", {"email": user.email})[0]
+    # Получение созданного пользователя с мастера
+    created_user = execute_sql_file("users/get_user_by_email.sql", {"email": user.email}, read_only=False)[0]
 
     try:
         await send_verification_email(user.email, created_user["id"])
@@ -48,7 +51,8 @@ async def register_user(user: UserCreate):
 @router.post("/login", response_model=Token)
 def login(user_credentials: UserLogin):
     """Login a user"""
-    user_result = execute_sql_file("users/get_user_by_email.sql", {"email": user_credentials.email})
+    # Для логина можно использовать реплику, так как это операция чтения
+    user_result = execute_sql_file("users/get_user_by_email.sql", {"email": user_credentials.email}, read_only=True)
 
     if not user_result:
         raise HTTPException(
@@ -98,7 +102,7 @@ def verify_email(token: str):
                 detail="Invalid verification token"
             )
 
-        execute_sql_file("users/verify_user.sql", {"id": user_id})
+        execute_sql_file("users/verify_user.sql", {"id": user_id}, read_only=False)
 
         return {"message": "Email verified successfully"}
 

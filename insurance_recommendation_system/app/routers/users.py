@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.database import execute_sql_file
+from app.database import execute_sql_file, get_slave_db
 from app.models.user_models import UserResponse, UserInfoResponse, UserInfoRequest, UserUpdate
 from app.utils.auth import get_current_user
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/user",
@@ -14,7 +15,8 @@ def get_current_user_info(request: UserInfoRequest):
     """Get user information"""
     email = request.email
 
-    user_info = execute_sql_file("users/get_user_info.sql", {"email": email})
+    # Используем реплику для операций чтения
+    user_info = execute_sql_file("users/get_user_info.sql", {"email": email}, read_only=True)
 
     if not user_info:
         raise HTTPException(status_code=404, detail="User not found")
@@ -53,9 +55,11 @@ def update_user_info(user_data: UserUpdate, current_user: dict = Depends(get_cur
     for key in expected_fields:
         sql_params.setdefault(key, None)
 
+    # Используем мастер для операций записи
     execute_sql_file("users/update_user_info.sql", sql_params)
 
-    updated_user = execute_sql_file("users/get_user_by_id.sql", {"id": current_user["id"]})[0]
+    # После обновления данных, получаем их из мастера, а не из реплики
+    updated_user = execute_sql_file("users/get_user_by_id.sql", {"id": current_user["id"]}, read_only=False)[0]
 
     return {
         "id": updated_user["id"],
