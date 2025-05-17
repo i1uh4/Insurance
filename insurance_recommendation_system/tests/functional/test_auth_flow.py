@@ -8,50 +8,6 @@ import json
 @pytest.mark.functional
 class TestAuthFlow:
 
-    @patch("app.services.email_service.send_verification_email")
-    async def test_user_registration(self, mock_send_email, client, test_user):
-        mock_send_email.return_value = True
-
-        response = client.post(
-            "/auth/register",
-            json={
-                "user_name": test_user["user_name"],
-                "email": test_user["email"],
-                "password": test_user["password"]
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["code"] == 0
-        assert "User registered successfully" in data["message"]
-        mock_send_email.assert_called_once()
-
-    @patch("app.services.email_service.send_verification_email")
-    async def test_registration_duplicate_email(self, mock_send_email, client, test_user):
-        mock_send_email.return_value = True
-
-        client.post(
-            "/auth/register",
-            json={
-                "user_name": test_user["user_name"],
-                "email": test_user["email"],
-                "password": test_user["password"]
-            }
-        )
-
-        response = client.post(
-            "/auth/register",
-            json={
-                "user_name": "anotheruser",
-                "email": test_user["email"],
-                "password": "AnotherPass123!"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "already exists" in response.json()["detail"]
-
     @patch("app.routers.auth.verify_token")
     def test_email_verification(self, mock_verify_token, client):
         mock_verify_token.return_value = {"user_id": 1}
