@@ -25,7 +25,6 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(recommendations.router)
 
-
 if __name__ == "__main__":
     import uvicorn
 

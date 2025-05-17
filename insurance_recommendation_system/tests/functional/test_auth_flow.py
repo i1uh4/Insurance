@@ -31,7 +31,6 @@ class TestAuthFlow:
     async def test_registration_duplicate_email(self, mock_send_email, client, test_user):
         mock_send_email.return_value = True
 
-        
         client.post(
             "/auth/register",
             json={
@@ -41,7 +40,6 @@ class TestAuthFlow:
             }
         )
 
-        
         response = client.post(
             "/auth/register",
             json={
@@ -75,7 +73,6 @@ class TestAuthFlow:
     @patch("app.routers.auth.execute_sql_file")
     @patch("app.routers.auth.verify_password")
     def test_login_successful(self, mock_verify_password, mock_execute_sql, client, test_user):
-        
         mock_execute_sql.return_value = [{
             "id": 1,
             "user_name": test_user["user_name"],
@@ -85,7 +82,6 @@ class TestAuthFlow:
             "created_at": "2023-01-01T00:00:00"
         }]
 
-        
         mock_verify_password.return_value = True
 
         response = client.post(
@@ -104,7 +100,6 @@ class TestAuthFlow:
 
     @patch("app.routers.auth.execute_sql_file")
     def test_login_user_not_found(self, mock_execute_sql, client):
-        
         mock_execute_sql.return_value = []
 
         response = client.post(
@@ -120,7 +115,6 @@ class TestAuthFlow:
 
     @patch("app.routers.auth.execute_sql_file")
     def test_login_not_verified(self, mock_execute_sql, client, test_user):
-        
         mock_execute_sql.return_value = [{
             "id": 1,
             "user_name": test_user["user_name"],
@@ -144,7 +138,6 @@ class TestAuthFlow:
     @patch("app.routers.auth.execute_sql_file")
     @patch("app.routers.auth.verify_password")
     def test_login_invalid_credentials(self, mock_verify_password, mock_execute_sql, client, test_user):
-        
         mock_execute_sql.return_value = [{
             "id": 1,
             "user_name": test_user["user_name"],
@@ -154,7 +147,6 @@ class TestAuthFlow:
             "created_at": "2023-01-01T00:00:00"
         }]
 
-        
         mock_verify_password.return_value = False
 
         response = client.post(

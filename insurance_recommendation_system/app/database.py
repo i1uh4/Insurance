@@ -11,12 +11,10 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 DATABASE_SLAVE_URL = os.getenv("DATABASE_SLAVE_URL", DATABASE_URL)
 
-# Основное соединение (Мастер)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Соединение с репликой (Слейв) - только для чтения
 slave_engine = create_engine(DATABASE_SLAVE_URL)
 SlaveSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=slave_engine)
 
@@ -54,10 +52,8 @@ def execute_sql_file(file_path, params=None, read_only=False):
     with open(full_path, 'r') as f:
         sql = f.read()
 
-    # Определяем, является ли запрос только для чтения
     is_select_query = sql.strip().lower().startswith('select')
 
-    # Выбираем соединение в зависимости от типа запроса
     connection_string = DATABASE_SLAVE_URL if is_select_query and read_only else DATABASE_URL
 
     conn = None

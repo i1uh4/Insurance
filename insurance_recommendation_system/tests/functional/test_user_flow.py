@@ -8,7 +8,6 @@ class TestUserFlow:
 
     @patch("app.routers.users.execute_sql_file")
     def test_get_user_info_success(self, mock_execute_sql, client, test_user):
-        
         mock_execute_sql.return_value = [
             {
                 "user_name": test_user["user_name"],
@@ -42,7 +41,6 @@ class TestUserFlow:
 
     @patch("app.routers.users.execute_sql_file")
     def test_get_user_info_not_found(self, mock_execute_sql, client):
-        
         mock_execute_sql.return_value = []
 
         response = client.post(
@@ -56,16 +54,14 @@ class TestUserFlow:
     @patch("app.routers.users.get_current_user")
     @patch("app.routers.users.execute_sql_file")
     def test_update_user_info(self, mock_execute_sql, mock_get_current_user, client, test_user, token_headers):
-        
         mock_get_current_user.return_value = {
             "id": 1,
             "email": test_user["email"]
         }
 
-        
         mock_execute_sql.side_effect = [
-            None,  
-            [  
+            None,
+            [
                 {
                     "id": 1,
                     "user_name": "updated_username",
@@ -94,22 +90,19 @@ class TestUserFlow:
         assert updated_user["user_name"] == "updated_username"
         assert updated_user["email"] == test_user["email"]
 
-        
         mock_execute_sql.assert_called()
 
     @patch("app.routers.users.get_current_user")
     @patch("app.routers.users.execute_sql_file")
     def test_update_user_minimal_info(self, mock_execute_sql, mock_get_current_user, client, test_user, token_headers):
-        
         mock_get_current_user.return_value = {
             "id": 1,
             "email": test_user["email"]
         }
 
-        
         mock_execute_sql.side_effect = [
-            None,  
-            [  
+            None,
+            [
                 {
                     "id": 1,
                     "user_name": test_user["user_name"],
@@ -120,7 +113,6 @@ class TestUserFlow:
             ]
         ]
 
-        
         update_data = {
             "has_medical_conditions": True
         }
@@ -133,5 +125,4 @@ class TestUserFlow:
 
         assert response.status_code == status.HTTP_200_OK
 
-        
         mock_execute_sql.assert_called()

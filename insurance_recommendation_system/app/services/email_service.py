@@ -14,6 +14,7 @@ EMAIL_USERNAME = os.getenv('EMAIL_USERNAME')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 BACKEND_URL = os.getenv('BACKEND_URL')
 
+
 async def send_verification_email(recipient_email: str, user_id: int):
     """Send verification email to user using aiosmtplib"""
     token = create_verification_token(user_id)
