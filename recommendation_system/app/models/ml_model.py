@@ -14,18 +14,18 @@ class InsuranceRecommenderModel:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.insurances = []
 
-        # Load insurance data from database
+        
         try:
             self._load_data_from_database()
         except Exception as e:
             print(f"Error loading data from database: {e}")
             self.insurances = []
 
-        # Load model for text embedding
+        
         try:
             print(f"Loading model from {model_path}...")
 
-            # Use sentence transformers for embedding
+            
             if model_path.startswith("sentence-transformers/"):
                 try:
                     from sentence_transformers import SentenceTransformer
@@ -38,7 +38,7 @@ class InsuranceRecommenderModel:
                     raise
             else:
                 try:
-                    # Fallback to regular transformers
+                    
                     self.tokenizer = AutoTokenizer.from_pretrained(model_path)
                     self.model = AutoModel.from_pretrained(model_path).to(self.device)
                     self.use_sentence_transformer = False
@@ -79,13 +79,13 @@ class InsuranceRecommenderModel:
             with torch.no_grad():
                 outputs = self.model(**inputs)
 
-            # Mean pooling
+            
             embeddings = outputs.last_hidden_state.mean(dim=1)
             return embeddings
 
     def _format_user_profile(self, user_data: Dict[str, Any]) -> str:
         """Format user data into a rich profile description"""
-        # Build a detailed user profile
+        
         profile = f"A {user_data['age']}-year-old {user_data['gender']} working as {user_data['occupation']} "
         profile += f"with an annual income of ${user_data['income']}. "
         profile += f"Marital status: {user_data['marital_status']}. "
@@ -116,7 +116,7 @@ class InsuranceRecommenderModel:
 
     def _format_insurance_info(self, insurance: Dict[str, Any]) -> str:
         """Format insurance data into a rich description"""
-        # Create detailed insurance description
+        
         info = f"Insurance: {insurance['product_name']} by {insurance['provider']} "
         info += f"in the {insurance['category_name']} category. "
         info += f"{insurance['description']} "
@@ -128,14 +128,14 @@ class InsuranceRecommenderModel:
 
     def _calculate_match_score(self, user_embedding: torch.Tensor, insurance_embedding: torch.Tensor) -> float:
         """Calculate semantic similarity between user profile and insurance description"""
-        # Normalize vectors
+        
         user_norm = user_embedding / user_embedding.norm(dim=1, keepdim=True)
         insurance_norm = insurance_embedding / insurance_embedding.norm(dim=1, keepdim=True)
 
-        # Calculate cosine similarity
+        
         cos_sim = torch.sum(user_norm * insurance_norm, dim=1)
 
-        # Convert to score between 0 and 1
+        
         score = (cos_sim + 1) / 2
 
         return float(score.item())
@@ -144,7 +144,7 @@ class InsuranceRecommenderModel:
         """Generate a detailed recommendation reason based on user profile and insurance details"""
         reasons = []
 
-        # Health insurance recommendations
+        
         if insurance['category_name'] == 'Медицинское страхование':
             if user_data['has_medical_conditions']:
                 reasons.append(
@@ -155,7 +155,7 @@ class InsuranceRecommenderModel:
                     "this health insurance policy provides preventive care and coverage in case of unexpected medical needs"
                 )
 
-        # Auto insurance recommendations
+        
         if insurance['category_name'] == 'Автострахование':
             if user_data['has_vehicle']:
                 if user_data['income'] > 75000:
@@ -167,7 +167,7 @@ class InsuranceRecommenderModel:
                         "this auto insurance policy offers essential protection for your vehicle at an affordable price"
                     )
 
-        # Home insurance recommendations
+        
         if insurance['category_name'] == 'Страхование недвижимости':
             if user_data['has_home']:
                 if user_data['has_children']:
@@ -179,7 +179,7 @@ class InsuranceRecommenderModel:
                         "this home insurance policy offers tailored protection for your property"
                     )
 
-        # Life insurance recommendations
+        
         if insurance['category_name'] == 'Страхование жизни':
             if user_data['has_children'] or user_data['marital_status'] == 'married':
                 reasons.append(
@@ -190,7 +190,7 @@ class InsuranceRecommenderModel:
                     "this life insurance policy provides coverage that aligns with your individual needs"
                 )
 
-        # Travel insurance recommendations
+        
         if insurance['category_name'] == 'Страхование путешествий':
             if user_data['travel_frequency'] in ['often', 'very_often']:
                 reasons.append(
@@ -201,7 +201,7 @@ class InsuranceRecommenderModel:
                     "this travel insurance provides essential coverage for your occasional travel needs"
                 )
 
-        # Age-specific recommendations
+        
         if user_data['age'] < 30:
             reasons.append(
                 "this policy is designed with features beneficial for younger policyholders"
@@ -211,13 +211,13 @@ class InsuranceRecommenderModel:
                 "this policy includes special provisions for senior clients"
             )
 
-        # Income-based recommendations
+        
         if float(insurance['premium']) <= user_data['income'] * 0.01:
             reasons.append(
                 "the premium for this policy fits comfortably within your budget"
             )
 
-        # If no specific reasons were found, provide a generic one
+        
         if not reasons:
             reasons = ["this policy has a good match for your overall profile"]
 
@@ -227,7 +227,7 @@ class InsuranceRecommenderModel:
         """Calculate personalized price estimate based on user profile and base premium"""
         base_price = float(insurance['premium'])
 
-        # Age factor - higher for very young and very old
+        
         age = user_data['age']
         if age < 25:
             age_factor = 1.3
@@ -238,7 +238,7 @@ class InsuranceRecommenderModel:
         else:
             age_factor = 1.0
 
-        # Income factor - slight discount for higher incomes
+        
         income = user_data['income']
         if income > 100000:
             income_factor = 0.9
@@ -247,7 +247,7 @@ class InsuranceRecommenderModel:
         else:
             income_factor = 1.0
 
-        # Risk factors
+        
         risk_factor = 1.0
 
         if user_data['has_medical_conditions'] and insurance['category_name'] == 'Медицинское страхование':
@@ -256,7 +256,7 @@ class InsuranceRecommenderModel:
         if user_data['has_children']:
             risk_factor *= 1.1
 
-        # Category specific factors
+        
         if insurance['category_name'] == 'Автострахование' and user_data['has_vehicle']:
             risk_factor *= 1.0
 
@@ -269,10 +269,10 @@ class InsuranceRecommenderModel:
             elif user_data['travel_frequency'] == 'often':
                 risk_factor *= 1.2
 
-        # Calculate final price
+        
         estimated_price = base_price * age_factor * income_factor * risk_factor
 
-        # Ensure price stays within reasonable bounds
+        
         return min(base_price * 2.0, max(base_price * 0.7, estimated_price))
 
     def get_recommendations(self, user_data: Dict[str, Any], top_n: int = 5) -> List[Dict[str, Any]]:

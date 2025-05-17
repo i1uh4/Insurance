@@ -3,7 +3,7 @@ import os
 from app.models.ml_model import InsuranceRecommenderModel
 from app.models.insurance_models import InsuranceRecommendation, InsuranceRecommendationRequest
 
-# Use sentence-transformers model which is already installed
+
 MODEL_PATH = os.getenv("MODEL_PATH", "sentence-transformers/all-MiniLM-L6-v2")
 
 

@@ -18,7 +18,7 @@ router = APIRouter(
 @router.post("/check_recommendation", response_model=SuccessResponse)
 async def check_recommendation(request: UserCheckInfo):
     """Set a flag that user already checked for a product"""
-    # Используем мастер для чтения, т.к. за этим последует запись
+    
     user = execute_sql_file("users/get_user_by_email.sql", {"email": request.user_email}, read_only=False)
 
     if not user:
@@ -29,7 +29,7 @@ async def check_recommendation(request: UserCheckInfo):
 
     sql_params = {"user_id": user[0]["id"], "product_id": request.product_id}
 
-    # Используем мастер для записи
+    
     execute_sql_file("insurances/insert_product_view.sql", sql_params, read_only=False)
 
     return SuccessResponse()
