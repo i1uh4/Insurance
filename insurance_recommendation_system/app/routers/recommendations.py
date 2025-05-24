@@ -45,11 +45,23 @@ async def get_recommendations(request: InsuranceRecommendationRequest):
             detail="RECOMMENDATION_API_URL environment variable is not set"
         )
 
-    async with httpx.AsyncClient() as client:
+    timeout = httpx.Timeout(120.0, connect=10.0)
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
         try:
+            print(f"Sending request to recommendation system: {recommendation_system_url}")
+
             response = await client.post(recommendation_system_url, json=request.dict())
             response.raise_for_status()
+
+            print("Successfully received response from recommendation system")
             return response.json()
+
+        except httpx.TimeoutException:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Recommendation system did not respond within 60 seconds"
+            )
         except httpx.HTTPStatusError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,

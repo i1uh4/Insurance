@@ -1,62 +1,64 @@
 #!/bin/bash
 
-echo "Waiting for PostgreSQL master to be ready..."
+echo "=== Starting Replication Setup ==="
+
+
+echo "Waiting for master database..."
 until pg_isready -h db_master -p 5432 -U insurance; do
-  sleep 2
+    echo "Master not ready, waiting..."
+    sleep 2
 done
 
-echo "Waiting for PostgreSQL slave to be ready..."
-until pg_isready -h db_slave -p 5432 -U insurance; do
-  sleep 2
-done
+echo "Master database is ready!"
 
-echo "Creating replication user on master..."
-psql -h db_master -p 5432 -U insurance -d insurance -c "
-CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator_password';
-"
 
-echo "Configuring pg_hba.conf on master..."
-psql -h db_master -p 5432 -U insurance -d insurance -c "ALTER SYSTEM SET listen_addresses TO '*';"
-psql -h db_master -p 5432 -U insurance -d insurance -c "ALTER SYSTEM SET wal_level TO 'replica';"
-psql -h db_master -p 5432 -U insurance -d insurance -c "ALTER SYSTEM SET max_wal_senders TO 10;"
-psql -h db_master -p 5432 -U insurance -d insurance -c "ALTER SYSTEM SET max_replication_slots TO 10;"
-psql -h db_master -p 5432 -U insurance -d insurance -c "ALTER SYSTEM SET wal_keep_size TO '1GB';"
-psql -h db_master -p 5432 -U insurance -d insurance -c "SELECT pg_reload_conf();"
+echo "Testing replication user connection..."
+export PGPASSWORD=replicator_password
 
-echo "Restarting master..."
-pg_ctl -D /var/lib/postgresql/data -m fast -w restart
 
-echo "Waiting for master to be available again..."
-until pg_isready -h db_master -p 5432 -U insurance; do
-  sleep 2
-done
+if psql -h db_master -p 5432 -U replicator -d postgres -c "SELECT 1;" 2>/dev/null; then
+    echo "✓ Replication user connection successful"
+else
+    echo "✗ Failed to connect as replication user"
+    echo "Attempting to create replication user..."
+    
+    
+    export PGPASSWORD=postgres
+    psql -h db_master -p 5432 -U postgres -d postgres -c "
+        DO \$\$
+        BEGIN
+           IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'replicator') THEN
+              CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator_password';
+              RAISE NOTICE 'Replication user created';
+           END IF;
+        END
+        \$\$;
+    "
+    
+    
+    export PGPASSWORD=replicator_password
+    if psql -h db_master -p 5432 -U replicator -d postgres -c "SELECT 1;" 2>/dev/null; then
+        echo "✓ Replication user connection successful after creation"
+    else
+        echo "✗ Still cannot connect as replication user"
+        echo "Checking pg_hba.conf rules..."
+        export PGPASSWORD=postgres
+        psql -h db_master -p 5432 -U postgres -d postgres -c "SELECT * FROM pg_hba_file_rules WHERE database LIKE '%replication%' OR database LIKE '%all%';"
+        exit 1
+    fi
+fi
 
-echo "Stopping slave..."
-pg_ctl -D /var/lib/postgresql/data -m fast -w stop
 
-echo "Cleaning slave data directory..."
-rm -rf /var/lib/postgresql/data/*
+echo "Testing pg_basebackup..."
+export PGPASSWORD=replicator_password
 
-echo "Creating base backup from master..."
-pg_basebackup -h db_master -p 5432 -U replicator -D /tmp/backup -Fp -Xs -P -R
+if pg_basebackup -h db_master -p 5432 -U replicator -D /tmp/test_backup -v -P -W 2>&1; then
+    echo "✓ Base backup test successful"
+    rm -rf /tmp/test_backup
+else
+    echo "✗ Base backup test failed"
+    echo "This indicates a pg_hba.conf issue"
+    exit 1
+fi
 
-echo "Copying backup to slave..."
-docker cp insurance-postgres-master:/tmp/backup/. insurance-postgres-slave:/var/lib/postgresql/data/
-
-echo "Setting proper permissions on slave data..."
-chown -R postgres:postgres /var/lib/postgresql/data
-chmod 700 /var/lib/postgresql/data
-
-echo "Creating standby.signal on slave..."
-touch /var/lib/postgresql/data/standby.signal
-
-echo "Starting slave..."
-pg_ctl -D /var/lib/postgresql/data -w start
-
-echo "Checking replication status..."
-sleep 5
-psql -h db_master -p 5432 -U insurance -d insurance -c "
-SELECT * FROM pg_stat_replication;
-"
-
-echo "Replication setup complete!"
+echo "=== Replication setup completed successfully ==="

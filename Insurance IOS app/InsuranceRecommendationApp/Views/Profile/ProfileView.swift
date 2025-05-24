@@ -144,15 +144,15 @@ struct ProfileView: View {
         firstName = user.firstName ?? ""
         lastName = user.lastName ?? ""
         age = user.age != nil ? "\(user.age!)" : ""
-        gender = user.gender ?? "Male"
+        gender = user.gender ?? "None"  // Изменено с "Male" на "None"
         occupation = user.occupation ?? ""
         income = user.income != nil ? "\(user.income!)" : ""
-        maritalStatus = user.maritalStatus ?? "Single"
+        maritalStatus = user.maritalStatus ?? "None"  // Изменено с "Single" на "None"
         hasChildren = user.hasChildren ?? false
         hasVehicle = user.hasVehicle ?? false
         hasHome = user.hasHome ?? false
         hasMedicalConditions = user.hasMedicalConditions ?? false
-        travelFrequency = user.travelFrequency ?? "Rarely"
+        travelFrequency = user.travelFrequency ?? "None"  // Изменено с "Rarely" на "None"
     }
     
     private func fetchUserProfile() {
@@ -220,7 +220,7 @@ struct ProfileView: View {
             updatedFields["age"] = Int(age)
         }
         
-        if gender != (currentUser.gender ?? "Male") {
+        if gender != (currentUser.gender ?? "None") {
             updatedFields["gender"] = gender
         }
         
@@ -233,7 +233,7 @@ struct ProfileView: View {
             updatedFields["income"] = Double(income)
         }
         
-        if maritalStatus != (currentUser.maritalStatus ?? "Single") {
+        if maritalStatus != (currentUser.maritalStatus ?? "None") {
             updatedFields["marital_status"] = maritalStatus
         }
         
@@ -253,7 +253,7 @@ struct ProfileView: View {
             updatedFields["has_medical_conditions"] = hasMedicalConditions
         }
         
-        if travelFrequency != (currentUser.travelFrequency ?? "Rarely") {
+        if travelFrequency != (currentUser.travelFrequency ?? "None") {
             updatedFields["travel_frequency"] = travelFrequency
         }
         

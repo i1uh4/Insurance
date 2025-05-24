@@ -54,7 +54,8 @@ def execute_sql_file(file_path, params=None, read_only=False):
 
     is_select_query = sql.strip().lower().startswith('select')
 
-    connection_string = DATABASE_SLAVE_URL if is_select_query and read_only else DATABASE_URL
+    # connection_string = DATABASE_SLAVE_URL if is_select_query and read_only else DATABASE_URL
+    connection_string = DATABASE_URL
 
     conn = None
     try:

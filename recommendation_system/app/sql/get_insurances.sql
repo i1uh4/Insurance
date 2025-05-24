@@ -7,7 +7,7 @@ SELECT
     i.duration_months as duration,
     c.name AS category_name,
     c.description AS category_description,
-    'test' as provider
+    i.provider as provider
 FROM
     insurance_products i
 JOIN

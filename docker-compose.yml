@@ -10,14 +10,18 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=insurance
       - POSTGRES_DB=insurance
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_password
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U insurance" ]
-      interval: 5s
+      test: [ "CMD-SHELL", "pg_isready -U insurance && pg_isready -U replicator" ]
+      interval: 10s
       timeout: 5s
-      retries: 5
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      retries: 10
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - insurance_network
 
   db_slave:
     image: postgres:16
@@ -25,21 +29,45 @@ services:
     volumes:
       - postgres_slave_data:/var/lib/postgresql/data/
       - ./postgres/configs/slave:/etc/postgresql/
+      - ./postgres/scripts:/scripts/
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=insurance
       - POSTGRES_DB=insurance
+      - PGUSER=postgres
+      - POSTGRES_MASTER_SERVICE=db_master
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_password
     ports:
       - "5433:5432"
     depends_on:
-      db_master:
-        condition: service_healthy
+      replication_setup:
+        condition: service_completed_successfully
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U insurance" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      retries: 10
+    entrypoint: [ "/scripts/slave_entrypoint.sh" ]
+    networks:
+      - insurance_network
+
+  replication_setup:
+    image: postgres:16
+    container_name: insurance-replication-setup
+    volumes:
+      - ./postgres/scripts:/scripts
+      - postgres_master_data:/master_data
+    environment:
+      - PGPASSWORD=postgres
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_password
+    depends_on:
+      db_master:
+        condition: service_healthy
+    command: [ "/scripts/setup_replication.sh" ]
+    networks:
+      - insurance_network
 
   app:
     build: ./insurance_recommendation_system
@@ -53,6 +81,8 @@ services:
     depends_on:
       db_master:
         condition: service_healthy
+      db_slave:
+        condition: service_healthy
       recommendation_system:
         condition: service_started
     environment:
@@ -60,6 +90,8 @@ services:
       - DATABASE_SLAVE_URL=postgresql://insurance:postgres@db_slave:5432/insurance
       - RECOMMENDATION_API_URL=http://recommendation_system:8001/api/recommendations
       - PYTHONPATH=/app
+    networks:
+      - insurance_network
 
   migration:
     build: ./insurance_recommendation_system
@@ -74,6 +106,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://insurance:postgres@db_master:5432/insurance
       - PYTHONPATH=/app
+    networks:
+      - insurance_network
 
   recommendation_system:
     build:
@@ -84,7 +118,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - MODEL_PATH=sentence-transformers/all-MiniLM-L6-v2
+      - MODEL_PATH=microsoft/DialoGPT-small
       - PRODUCTS_DATA_PATH=/app/model/products_data.json
       - PYTHONHTTPSVERIFY=0
       - HF_HUB_DISABLE_SYMLINKS_WARNING=1
@@ -98,10 +132,12 @@ services:
     depends_on:
       db_master:
         condition: service_healthy
+    networks:
+      - insurance_network
 
-  replication_setup:
+  replication_monitor:
     image: postgres:16
-    container_name: insurance-replication-setup
+    container_name: insurance-replication-monitor
     volumes:
       - ./postgres/scripts:/scripts
     environment:
@@ -111,10 +147,19 @@ services:
         condition: service_healthy
       db_slave:
         condition: service_healthy
-    command: >
-      sh -c "chmod +x /scripts/setup_replication.sh && 
-             /scripts/setup_replication.sh"
+    command: [ "/scripts/monitor_replication.sh" ]
+    restart: unless-stopped
+    networks:
+      - insurance_network
 
 volumes:
   postgres_master_data:
   postgres_slave_data:
+
+networks:
+  insurance_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

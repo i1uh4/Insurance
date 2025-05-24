@@ -28,7 +28,7 @@ RUN mkdir -p /app/model
 COPY model/products_data.json /app/model/
 COPY app/ /app/app/
 
-ENV MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+ENV MODEL_PATH="microsoft/DialoGPT-small"
 ENV PRODUCTS_DATA_PATH="/app/model/products_data.json"
 ENV PYTHONWARNINGS="ignore::Warning"
 ENV PYTHONIOENCODING="utf-8"

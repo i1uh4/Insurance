@@ -88,12 +88,13 @@ COMMENT ON COLUMN insurance_categories.description IS 'Описание кате
 COMMENT ON COLUMN insurance_categories.created_at IS 'Дата и время создания записи';
 COMMENT ON COLUMN insurance_categories.updated_at IS 'Дата и время обновления записи';
 
--- Таблица страховых продуктов
+-- Таблица страховых продуктов с добавленным столбцом provider
 CREATE TABLE IF NOT EXISTS insurance_products (
     id                         SERIAL       PRIMARY KEY,
     category_id                INTEGER      NOT NULL REFERENCES insurance_categories(id) ON DELETE CASCADE,
     name                       VARCHAR(255) NOT NULL,
     description                TEXT,
+    provider                   VARCHAR(255) NOT NULL, -- Добавлен столбец provider
     --
     premium                    DECIMAL(15, 2) NOT NULL,
     coverage                   DECIMAL(15, 2) NOT NULL,
@@ -107,12 +108,14 @@ CREATE TABLE IF NOT EXISTS insurance_products (
 
 CREATE INDEX IF NOT EXISTS idx_insurance_products_category_id ON insurance_products(category_id);
 CREATE INDEX IF NOT EXISTS idx_insurance_products_is_active ON insurance_products(is_active);
+CREATE INDEX IF NOT EXISTS idx_insurance_products_provider ON insurance_products(provider); -- Добавлен индекс для provider
 
 COMMENT ON TABLE insurance_products IS 'Страховые продукты';
 COMMENT ON COLUMN insurance_products.id IS 'Уникальный идентификатор страхового продукта';
 COMMENT ON COLUMN insurance_products.category_id IS 'Ссылка на категорию страхования';
 COMMENT ON COLUMN insurance_products.name IS 'Название страхового продукта';
 COMMENT ON COLUMN insurance_products.description IS 'Описание страхового продукта';
+COMMENT ON COLUMN insurance_products.provider IS 'Поставщик страхового продукта';
 COMMENT ON COLUMN insurance_products.premium IS 'Стоимость страховой премии';
 COMMENT ON COLUMN insurance_products.coverage IS 'Размер страхового покрытия';
 COMMENT ON COLUMN insurance_products.duration_months IS 'Срок действия страховки в месяцах (NULL для бессрочных)';
@@ -187,6 +190,8 @@ FOR EACH ROW
 EXECUTE FUNCTION create_user_profile();
 
 
+--------------------------
+
 INSERT INTO insurance_categories (name, description) VALUES
     ('Life Insurance', 'Insurance that pays out a sum of money either on the death of the insured person or after a set period.'),
     ('Health Insurance', 'Insurance coverage that pays for medical and surgical expenses incurred by the insured.'),
@@ -196,15 +201,89 @@ INSERT INTO insurance_categories (name, description) VALUES
 ON CONFLICT DO NOTHING;
 
 
-INSERT INTO insurance_products (name, description, premium, coverage, duration_months, category_id) VALUES
-    ('Term Life Insurance', 'Provides coverage at a fixed rate of payments for a limited period of time.', 5000, 1000000, 120, 1),
-    ('Whole Life Insurance', 'Permanent life insurance that remains in force for the insured''s entire lifetime.', 12000, 2000000, NULL, 1),
-    ('Individual Health Insurance', 'Health insurance coverage for an individual that covers medical expenses.', 8000, 500000, 12, 2),
-    ('Family Health Insurance', 'Health insurance coverage for the entire family under a single premium.', 15000, 1000000, 12, 2),
-    ('Comprehensive Auto Insurance', 'Covers damages to your vehicle along with third-party liability.', 6000, 300000, 12, 3),
-    ('Third-Party Auto Insurance', 'Covers damages to third-party vehicles and property.', 3000, 150000, 12, 3),
-    ('Basic Home Insurance', 'Covers basic damages to your home due to fire, theft, etc.', 4000, 500000, 12, 4),
-    ('Premium Home Insurance', 'Comprehensive coverage for your home including natural disasters.', 9000, 1500000, 12, 4),
-    ('Single Trip Travel Insurance', 'Coverage for a single trip including medical emergencies and trip cancellation.', 1500, 100000, 1, 5),
-    ('Annual Multi-Trip Travel Insurance', 'Coverage for multiple trips within a year.', 5000, 300000, 12, 5)
-ON CONFLICT DO NOTHING;
+-- Life Insurance (Страхование жизни)
+INSERT INTO insurance_products (category_id, name, description, provider, premium, coverage, duration_months, is_active) VALUES
+    -- Сбер Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'СберЖизнь', 'Программа накопительного страхования жизни с гарантированной выплатой и инвестиционной составляющей', 'Сбер Страхование', 10000.00, 1000000.00, 60, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Сбер Защита близких', 'Страхование жизни для защиты семьи в случае ухода из жизни застрахованного', 'Сбер Страхование', 5000.00, 2000000.00, 12, TRUE),
+
+    -- Альфа Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Альфа-Жизнь', 'Накопительное страхование жизни с возможностью получения дополнительного инвестиционного дохода', 'Альфа Страхование', 15000.00, 3000000.00, 120, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Альфа-Защита семьи', 'Страхование жизни с выплатой в случае смерти застрахованного', 'Альфа Страхование', 7500.00, 5000000.00, 12, TRUE),
+
+    -- Ингосстрах
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Инвест-Полис', 'Инвестиционное страхование жизни с возможностью получения дополнительного дохода', 'Ингосстрах', 30000.00, 3000000.00, 36, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Гарантия будущего', 'Накопительное страхование жизни для формирования целевого капитала', 'Ингосстрах', 20000.00, 2500000.00, 60, TRUE),
+
+    -- Тинькофф Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Life Insurance'), 'Тинькофф Страхование жизни', 'Страхование жизни с фиксированной выплатой в случае смерти', 'Тинькофф Страхование', 4000.00, 1500000.00, 12, TRUE);
+
+-- Health Insurance (Медицинское страхование)
+INSERT INTO insurance_products (category_id, name, description, provider, premium, coverage, duration_months, is_active) VALUES
+    -- Сбер Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'СберЗдоровье', 'Добровольное медицинское страхование с широким покрытием медицинских услуг', 'Сбер Страхование', 30000.00, 2000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'Сбер Телемедицина', 'Онлайн-консультации с врачами 24/7 и скидки на медицинские услуги', 'Сбер Страхование', 5000.00, 500000.00, 12, TRUE),
+
+    -- Альфа Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'АльфаСиница', 'Комплексное ДМС с обслуживанием в ведущих клиниках', 'Альфа Страхование', 45000.00, 3000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'Альфа Защита от несчастных случаев', 'Страхование от несчастных случаев и травм', 'Альфа Страхование', 8000.00, 1000000.00, 12, TRUE),
+
+    -- Ингосстрах
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'ДМС Платинум', 'Премиальное медицинское обслуживание в лучших клиниках', 'Ингосстрах', 60000.00, 5000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'Антиклещ', 'Страхование от укуса клеща и последствий клещевых инфекций', 'Ингосстрах', 1200.00, 300000.00, 6, TRUE),
+
+    -- РЕСО-Гарантия
+    ((SELECT id FROM insurance_categories WHERE name = 'Health Insurance'), 'РЕСО Здоровье', 'Комплексное медицинское страхование для всей семьи', 'РЕСО-Гарантия', 35000.00, 2500000.00, 12, TRUE);
+
+-- Auto Insurance (Автострахование)
+INSERT INTO insurance_products (category_id, name, description, provider, premium, coverage, duration_months, is_active) VALUES
+    -- Сбер Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Сбер КАСКО', 'Полное страхование автомобиля от всех рисков', 'Сбер Страхование', 50000.00, 1500000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Сбер ОСАГО', 'Обязательное страхование автогражданской ответственности', 'Сбер Страхование', 7000.00, 500000.00, 12, TRUE),
+
+    -- Альфа Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Альфа КАСКО Оптимум', 'Оптимальное страхование автомобиля с разумной стоимостью', 'Альфа Страхование', 45000.00, 1200000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Альфа ОСАГО+', 'ОСАГО с расширенным покрытием и дополнительными сервисами', 'Альфа Страхование', 9000.00, 600000.00, 12, TRUE),
+
+    -- Ингосстрах
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'КАСКО Премиум', 'Премиальное страхование автомобиля с максимальным покрытием', 'Ингосстрах', 70000.00, 3000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'ОСАГО Стандарт', 'Стандартное ОСАГО с быстрым оформлением', 'Ингосстрах', 6500.00, 400000.00, 12, TRUE),
+
+    -- Тинькофф Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Тинькофф КАСКО', 'Онлайн-страхование автомобиля с удобным мобильным приложением', 'Тинькофф Страхование', 40000.00, 1000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Auto Insurance'), 'Тинькофф ОСАГО', 'Цифровое ОСАГО с быстрым оформлением онлайн', 'Тинькофф Страхование', 6000.00, 500000.00, 12, TRUE);
+
+-- Home Insurance (Страхование недвижимости)
+INSERT INTO insurance_products (category_id, name, description, provider, premium, coverage, duration_months, is_active) VALUES
+    -- Сбер Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Сбер Страхование квартиры', 'Комплексное страхование квартиры, отделки и имущества', 'Сбер Страхование', 8000.00, 3000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Сбер Страхование дома', 'Страхование загородного дома и хозяйственных построек', 'Сбер Страхование', 15000.00, 5000000.00, 12, TRUE),
+
+    -- Альфа Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Альфа Квартира', 'Страхование квартиры от всех рисков с защитой отделки', 'Альфа Страхование', 7500.00, 2500000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Альфа Загородная недвижимость', 'Комплексное страхование загородной недвижимости', 'Альфа Страхование', 20000.00, 7000000.00, 12, TRUE),
+
+    -- Ингосстрах
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Платинум Дом', 'Премиальное страхование элитной недвижимости', 'Ингосстрах', 30000.00, 10000000.00, 12, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'Экспресс-полис', 'Быстрое страхование квартиры с минимальным набором документов', 'Ингосстрах', 5000.00, 1500000.00, 12, TRUE),
+
+    -- РЕСО-Гарантия
+    ((SELECT id FROM insurance_categories WHERE name = 'Home Insurance'), 'РЕСО Дом', 'Страхование дома и имущества с индивидуальным подходом', 'РЕСО-Гарантия', 12000.00, 4000000.00, 12, TRUE);
+
+-- Travel Insurance (Страхование путешественников)
+INSERT INTO insurance_products (category_id, name, description, provider, premium, coverage, duration_months, is_active) VALUES
+    -- Сбер Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Сбер Путешествия', 'Страхование для выезжающих за рубеж с медицинским покрытием', 'Сбер Страхование', 3000.00, 2000000.00, 1, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Сбер Защита в поездке', 'Страхование от несчастных случаев и потери багажа в путешествии', 'Сбер Страхование', 1500.00, 500000.00, 1, TRUE),
+
+    -- Альфа Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'АльфаТревел', 'Комплексное страхование путешественников с широким покрытием', 'Альфа Страхование', 4000.00, 3000000.00, 1, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Альфа Спорт', 'Страхование для активного отдыха и занятий спортом', 'Альфа Страхование', 5000.00, 2500000.00, 1, TRUE),
+
+    -- Ингосстрах
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'ИнгоТревел Премиум', 'Премиальное страхование путешественников с расширенным покрытием', 'Ингосстрах', 7000.00, 5000000.00, 1, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Инго Мульти', 'Годовой полис для частых путешественников', 'Ингосстрах', 15000.00, 3000000.00, 12, TRUE),
+
+    -- Тинькофф Страхование
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Тинькофф Путешествия', 'Онлайн-страхование путешественников с удобным мобильным приложением', 'Тинькофф Страхование', 2500.00, 1500000.00, 1, TRUE),
+    ((SELECT id FROM insurance_categories WHERE name = 'Travel Insurance'), 'Тинькофф Отмена поездки', 'Страхование от отмены или прерывания поездки', 'Тинькофф Страхование', 2000.00, 300000.00, 1, TRUE);
